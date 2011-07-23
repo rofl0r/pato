@@ -1,0 +1,7 @@
+[main]
+date=0
+monthsperyear=12
+dayspermonth=30
+hoursperday=24
+minutesperhour=60
+secondsperminute=64
