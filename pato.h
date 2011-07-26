@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "../lib/stringptr.h"
+#include "../lib/include/stringptr.h"
 
 #define MAX_PLAYERS 64
 #define CITY_MAX_INDUSTRYTYPES 5

@@ -1,3 +1,6 @@
+#ifndef IMGINTERFACE_H
+#define IMGINTERFACE_H
+
 #include <stddef.h>
 
 #include "../concol/rgb.h"
@@ -13,3 +16,8 @@ void img_fillcolor(Image* img, rgb_t color);
 Image* img_new(size_t w, size_t h);
 Image* img_scale(Image* img, size_t zoomFactor_w, size_t zoomFactor_h);
 void img_embed(Image* dest, Image* source, size_t x, size_t y);
+
+#endif
+//RcB: DEP "imginterface.c"
+
+

@@ -2,11 +2,7 @@ INCLUDES="."
 LINKDIRS=
 LINKLIBS=-lncurses -llept -lm
 
-MAINFILE=pato
-OUTFILE=${MAINFILE}.out
-
-
-FILES=`rcb ${MAINFILE}.c`
+MAINFILE=pato.c
 
 CFLAGS_OWN=-Wall -D_GNU_SOURCE
 CFLAGS_DBG=-g
@@ -14,13 +10,16 @@ CFLAGS_OPT=-s -Os
 
 -include config.mak
 
+CFLAGS_RCB_OPT=${CFLAGS_OWN} ${CFLAGS_OPT} -I ${INCLUDES} ${LINKLIBS} ${CFLAGS}
+CFLAGS_RCB_DBG=${CFLAGS_OWN} ${CFLAGS_DBG} -I ${INCLUDES} ${LINKLIBS} ${CFLAGS}
+
 all: debug
 
-optimized: 
-	${CC} ${CFLAGS_OWN} ${CFLAGS_OPT} -I ${INCLUDES} ${FILES} ${LINKLIBS} ${CFLAGS} -o ${OUTFILE}
+optimized:
+	CFLAGS="${CFLAGS_RCB_OPT}" rcb --force ${MAINFILE}
 
-debug: 
-	${CC} ${CFLAGS_OWN} ${CFLAGS_DBG} -I ${INCLUDES} ${FILES} ${LINKLIBS} ${CFLAGS} -o ${OUTFILE}
+debug:
+	CFLAGS="${CFLAGS_RCB_DBG}" rcb --force ${MAINFILE}
 
 
 .PHONY: all optimized debug

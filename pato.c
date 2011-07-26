@@ -34,16 +34,10 @@ bug repeated resizing of the terminal will crash game
 #include <signal.h>
 
 
-#include "../lib/iniparser.h"
+#include "../lib/include/iniparser.h"
 
 #include "pato.h"
 #include "gui.h"
-
-//RcB: DEP "../lib/stringptr.c"
-//RcB: DEP "../lib/stringptrlist.c"
-//RcB: DEP "../lib/iniparser.c"
-//RcB: DEP "gui.c"
-//RcB: DEP "imginterface.c"
 
 // gcc -Wall -Wextra -g -DNOKDEV pato.c ../lib/stringptr.c ../lib/iniparser.c -lm -o pato
 
@@ -149,7 +143,7 @@ float populationConsumation[PT_MAX][GT_MAX];
 
 
 PlayerType playerTypeFromString(stringptr* pt) {
-	if(streq(pt, SPLITERAL("pc")))
+	if(stringptr_eq(pt, SPLITERAL("pc")))
 		return PLT_CPU;
 	else return PLT_USER;
 }
@@ -185,7 +179,7 @@ stringptr* stringFromPopulationType(populationType p) {
 Goodtype goodTypeFromString(stringptr* good) {
 	size_t i;
 	for(i = 0; i < GT_MAX; i++) {
-		if(streq(good, Goods[i].name))
+		if(stringptr_eq(good, Goods[i].name))
 			return Goods[i].type;
 	}
 	return GT_NONE;
@@ -197,7 +191,7 @@ stringptr* stringFromGoodType(Goodtype g) {
 }
 
 void initWorld(void) {
-	stringptr* cf = readfile("world.txt");
+	stringptr* cf = stringptr_fromfile("world.txt");
 	stringptrlist* lines = stringptr_linesplit(cf);
 	stringptr inibuf;
 	ini_section sec;
@@ -218,7 +212,7 @@ void initWorld(void) {
 	world._dayseconds = world.secondsperminute * world.minutesperhour * world.hoursperday;
 	world._fdaysperyear = (float) world.dayspermonth * (float) world.monthsperyear;
 	
-	free_string(cf);
+	stringptr_free(cf);
 	free(lines);
 }
 
@@ -226,7 +220,7 @@ void initConsumationTable(void) {
 	size_t i, g;
 	char buf[64];
 	stringptr bufptr;
-	stringptr* cf = readfile("consumation.txt");
+	stringptr* cf = stringptr_fromfile("consumation.txt");
 	stringptrlist* lines = stringptr_linesplit(cf);
 	stringptr inibuf;
 	ini_section sec;
@@ -239,7 +233,7 @@ void initConsumationTable(void) {
 			populationConsumation[g][i] = atof(inibuf.ptr);
 		}
 	}
-	free_string(cf);
+	stringptr_free(cf);
 	free(lines);
 }
 
@@ -247,7 +241,7 @@ void freeCities(void) {
 	size_t i;
 	for (i = 0; i < numCities; i++) {
 		if(Cities[i].name)
-			free_string(Cities[i].name);
+			stringptr_free(Cities[i].name);
 	}
 }
 
@@ -255,7 +249,7 @@ void initCities(void) {
 	size_t i, g;
 	char buf[32];
 	stringptr bufptr;
-	stringptr* cf = readfile("cities.txt");
+	stringptr* cf = stringptr_fromfile("cities.txt");
 	stringptrlist* lines = stringptr_linesplit(cf);
 	ini_section sec = iniparser_get_section(lines, SPLITERAL("main"));
 	stringptr inibuf;
@@ -267,7 +261,7 @@ void initCities(void) {
 		bufptr.size = snprintf(buf, sizeof(buf), "city%.3d", (int) i);
 		sec = iniparser_get_section(lines, &bufptr);
 		iniparser_getvalue(lines, &sec, SPLITERAL("name"), &inibuf);
-		Cities[i].name = copy_string(&inibuf);
+		Cities[i].name = stringptr_copy(&inibuf);
 		iniparser_getvalue(lines, &sec, SPLITERAL("x"), &inibuf);
 		Cities[i].coords.x = atof(inibuf.ptr);
 		iniparser_getvalue(lines, &sec, SPLITERAL("y"), &inibuf);
@@ -318,21 +312,21 @@ void initCities(void) {
 			Cities[i].shipyard.availableShips.numShips[g] = atoi(inibuf.ptr);
 		}
 	}
-	free_string(cf);
+	stringptr_free(cf);
 	free(lines);
 }
 
 ptrdiff_t findCityFromString(stringptr* name) {
 	size_t i;
 	for(i = 0; i < numCities; i++) {
-		if(streq(Cities[i].name, name))
+		if(stringptr_eq(Cities[i].name, name))
 			return i;
 	}
 	return -1;
 }
 
 ShipLocationType shipLocationTypeFromString(stringptr* loc) {
-	if(streq(loc, SPLITERAL("sea")))
+	if(stringptr_eq(loc, SPLITERAL("sea")))
 		return SLT_SEA;
 	else
 		return SLT_CITY;
@@ -342,10 +336,10 @@ void freePlayers(void) {
 	size_t p, s;
 	for(p = 0; p < numPlayers; p++) {
 		if(Players[p].name)
-			free_string(Players[p].name);
+			stringptr_free(Players[p].name);
 		for (s = 0; s < Players[p].numConvoys; s++) {
 			if(Players[p].convoys[s].name)
-				free_string(Players[p].convoys[s].name);
+				stringptr_free(Players[p].convoys[s].name);
 		}
 	}
 }
@@ -354,22 +348,22 @@ void initPlayers(void) {
 	size_t i, p, s, t;
 	char buf[32];
 	stringptr bufptr;
-	stringptr* cf = readfile("players.txt");
+	stringptr* cf = stringptr_fromfile("players.txt");
 	stringptrlist* lines = stringptr_linesplit(cf);
 	ini_section sec = iniparser_get_section(lines, SPLITERAL("main"));
 	stringptr inibuf;
 	iniparser_getvalue(lines, &sec, SPLITERAL("playercount"), &inibuf);
 	numPlayers = atoi(inibuf.ptr);
 	bufptr.ptr = buf;
-	free_string(cf);
+	stringptr_free(cf);
 	free(lines);
 	for(p = 0; p < numPlayers; p++) {
 		bufptr.size = snprintf(buf, sizeof(buf), "players/player%.6d.txt", (int) p);
-		cf = readfile(buf);
+		cf = stringptr_fromfile(buf);
 		lines = stringptr_linesplit(cf);
 		sec = iniparser_get_section(lines, SPLITERAL("main"));
 		iniparser_getvalue(lines, &sec, SPLITERAL("name"), &inibuf);
-		Players[p].name = copy_string(&inibuf);
+		Players[p].name = stringptr_copy(&inibuf);
 		iniparser_getvalue(lines, &sec, SPLITERAL("type"), &inibuf);
 		Players[p].type = playerTypeFromString(&inibuf);
 		iniparser_getvalue(lines, &sec, SPLITERAL("branches"), &inibuf);
@@ -413,7 +407,7 @@ void initPlayers(void) {
 			sec = iniparser_get_section(lines, &bufptr);
 			
 			iniparser_getvalue(lines, &sec, SPLITERAL("name"), &inibuf);
-			Players[p].convoys[s].name = copy_string(&inibuf);
+			Players[p].convoys[s].name = stringptr_copy(&inibuf);
 			
 			iniparser_getvalue(lines, &sec, SPLITERAL("captainsalary"), &inibuf);
 			Players[p].convoys[s].captainSalary = atoi(inibuf.ptr);
@@ -484,7 +478,7 @@ void initPlayers(void) {
 				
 			}
 		}
-		free_string(cf);
+		stringptr_free(cf);
 		free(lines);
 	}
 }
@@ -495,7 +489,7 @@ void initBuildings(void) {
 	stringptr bufptr;
 	bufptr.ptr = buf;
 	stringptr inibuf;
-	stringptr* cf = readfile("buildings.txt");
+	stringptr* cf = stringptr_fromfile("buildings.txt");
 	stringptrlist* lines = stringptr_linesplit(cf);
 	ini_section sec;
 	int temp;
@@ -542,7 +536,7 @@ void initBuildings(void) {
 		else
 			externalGoodRequiredForProduction[i] = 0;
 	}
-	free_string(cf);
+	stringptr_free(cf);
 	free(lines);	
 }
 
@@ -1057,7 +1051,7 @@ ptrdiff_t makeConvoy(size_t city, size_t shiploc, size_t player, size_t numships
 		c = &Players[player].convoys[Players[player].numConvoys];
 		memset(c, 0, sizeof(Convoy));
 		bufptr.size = snprintf(buf, sizeof(buf), "Convoy%.3d", (int) Players[player].numConvoys);
-		c->name = copy_string(&bufptr);
+		c->name = stringptr_copy(&bufptr);
 		c->loc = SLT_CITY;
 		c->locCity = city;
 		addToConvoy(c, shiploc, player, numships, t);

@@ -104,3 +104,5 @@ int gui_processInput(Gui* gui);
 void gui_resized(Gui* gui);
 void gui_repaint(Gui* gui);
 
+//RcB: DEP "gui.c"
+
