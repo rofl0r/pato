@@ -213,7 +213,7 @@ void initWorld(void) {
 	world._fdaysperyear = (float) world.dayspermonth * (float) world.monthsperyear;
 	
 	stringptr_free(cf);
-	free(lines);
+	stringptrlist_free(lines);
 }
 
 void initConsumationTable(void) {
@@ -234,7 +234,7 @@ void initConsumationTable(void) {
 		}
 	}
 	stringptr_free(cf);
-	free(lines);
+	stringptrlist_free(lines);
 }
 
 void freeCities(void) {
@@ -313,7 +313,7 @@ void initCities(void) {
 		}
 	}
 	stringptr_free(cf);
-	free(lines);
+	stringptrlist_free(lines);
 }
 
 ptrdiff_t findCityFromString(stringptr* name) {
@@ -356,7 +356,7 @@ void initPlayers(void) {
 	numPlayers = atoi(inibuf.ptr);
 	bufptr.ptr = buf;
 	stringptr_free(cf);
-	free(lines);
+	stringptrlist_free(lines);
 	for(p = 0; p < numPlayers; p++) {
 		bufptr.size = snprintf(buf, sizeof(buf), "players/player%.6d.txt", (int) p);
 		cf = stringptr_fromfile(buf);
@@ -479,7 +479,7 @@ void initPlayers(void) {
 			}
 		}
 		stringptr_free(cf);
-		free(lines);
+		stringptrlist_free(lines);
 	}
 }
 
@@ -537,7 +537,7 @@ void initBuildings(void) {
 			externalGoodRequiredForProduction[i] = 0;
 	}
 	stringptr_free(cf);
-	free(lines);	
+	stringptrlist_free(lines);	
 }
 
 size_t getMaxWorkerCount(size_t branch, size_t player) {
