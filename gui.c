@@ -10,6 +10,8 @@
 #include "../concol/ncconsole.h"
 #include "../concol/ncconsole_chars.h"
 
+#define MVPRINTW(y, x, ...) console_printfxy(gui->term, (x), (y), __VA_ARGS__)
+
 const rgb_t MENU_BGCOLOR = RGB(30, 30, 120);
 const rgb_t MENU_FONTCOLOR = RGB(255, 255, 255);
 const rgb_t MENU_HIGHLIGHT_FONTCOLOR = RGB(220, 30, 0);
@@ -529,7 +531,7 @@ void paintPage(Gui* gui, Guipage page) {
 					console_goto(gui->term, x, y);
 					console_addchar(gui->term, 'X', 0);
 					if(x + 2 + Cities[i].name->size < gui->areas.page.w)
-						mvprintw(y, x + 2, "%s", Cities[i].name->ptr);
+						MVPRINTW(y, x + 2, "%s", Cities[i].name->ptr);
 				}
 			}
 			
@@ -539,17 +541,17 @@ void paintPage(Gui* gui, Guipage page) {
 			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
 			console_initoutput(gui->term);
 			
-			mvprintw(3, 3, "status for %s", Cities[gui->pageParam].name->ptr);
+			MVPRINTW(3, 3, "status for %s", Cities[gui->pageParam].name->ptr);
 			y = 4;
-			mvprintw(++y, 3, "money: %lld", Cities[gui->pageParam].money);
-			mvprintw(++y, 3, "population:");
+			MVPRINTW(++y, 3, "money: %lld", Cities[gui->pageParam].money);
+			MVPRINTW(++y, 3, "population:");
 			for(i = 1; i < PT_MAX; i++) {
-				mvprintw(++y, 3, "%s: count: %d, mood: %f", stringFromPopulationType(i)->ptr, (int) Cities[gui->pageParam].population[i], Cities[gui->pageParam].populationMood[i]);
+				MVPRINTW(++y, 3, "%s: count: %d, mood: %f", stringFromPopulationType(i)->ptr, (int) Cities[gui->pageParam].population[i], Cities[gui->pageParam].populationMood[i]);
 			}
 			y++;
-			mvprintw(++y, 3, "market:");
+			MVPRINTW(++y, 3, "market:");
 			for(i = 1; i < GT_MAX; i++) {
-				mvprintw(++y, 3, "%*s: %.3f", -11, stringFromGoodType(i)->ptr, Cities[gui->pageParam].market.stock[i]);
+				MVPRINTW(++y, 3, "%*s: %.3f", -11, stringFromGoodType(i)->ptr, Cities[gui->pageParam].market.stock[i]);
 			}
 			break;
 		case GP_PLAYER:
@@ -558,13 +560,13 @@ void paintPage(Gui* gui, Guipage page) {
 			console_initoutput(gui->term);
 			x = 3;
 			y = 3;
-			mvprintw(y++, x, "status for %s [press 'i' to impersonate]", Players[gui->pageParam].name->ptr);
-			mvprintw(y++, x, "money: %llu", Players[gui->pageParam].money);
-			mvprintw(y++, x, "branches: %d", (int) Players[gui->pageParam].numBranches);
+			MVPRINTW(y++, x, "status for %s [press 'i' to impersonate]", Players[gui->pageParam].name->ptr);
+			MVPRINTW(y++, x, "money: %llu", Players[gui->pageParam].money);
+			MVPRINTW(y++, x, "branches: %d", (int) Players[gui->pageParam].numBranches);
 			for(i = 0; i < Players[gui->pageParam].numBranches; i++) {
-				mvprintw(y++, x, "branch %s", Cities[Players[gui->pageParam].branchCity[i]].name->ptr);
-				mvprintw(y++, x, "workers: %d", (int) Players[gui->pageParam].branchWorkers[i]);
-				mvprintw(y++, x, "free stock: %d", (int) getPlayerFreeBranchStorage(i, gui->pageParam));
+				MVPRINTW(y++, x, "branch %s", Cities[Players[gui->pageParam].branchCity[i]].name->ptr);
+				MVPRINTW(y++, x, "workers: %d", (int) Players[gui->pageParam].branchWorkers[i]);
+				MVPRINTW(y++, x, "free stock: %d", (int) getPlayerFreeBranchStorage(i, gui->pageParam));
 			}
 			
 			break;
@@ -574,10 +576,10 @@ void paintPage(Gui* gui, Guipage page) {
 			console_initoutput(gui->term);
 			x = 3;
 			y = 3;
-			mvprintw(y++, x, "Player %s, branch %s", Players[gui->pageParam2].name->ptr, Cities[Players[gui->pageParam2].branchCity[gui->pageParam]].name->ptr);
-			mvprintw(y++, x, "money: %llu", Players[gui->pageParam2].money);
-			mvprintw(y++, x, "workers: %d", (int) Players[gui->pageParam2].branchWorkers[gui->pageParam]);
-			mvprintw(y++, x, "%s:", "factories");
+			MVPRINTW(y++, x, "Player %s, branch %s", Players[gui->pageParam2].name->ptr, Cities[Players[gui->pageParam2].branchCity[gui->pageParam]].name->ptr);
+			MVPRINTW(y++, x, "money: %llu", Players[gui->pageParam2].money);
+			MVPRINTW(y++, x, "workers: %d", (int) Players[gui->pageParam2].branchWorkers[gui->pageParam]);
+			MVPRINTW(y++, x, "%s:", "factories");
 			y++;
 			c = 0;
 			for(i = 0; i < CITY_MAX_INDUSTRYTYPES; i++)
@@ -585,7 +587,7 @@ void paintPage(Gui* gui, Guipage page) {
 					c++;
 			if(c) {	
 				for(i = 0; i < CITY_MAX_INDUSTRYTYPES; i++) {
-					mvprintw(y++, 3, "%*s: %d x %.3f/%.3f -> %.3f/%.3f", -11,
+					MVPRINTW(y++, 3, "%*s: %d x %.3f/%.3f -> %.3f/%.3f", -11,
 						stringFromGoodType(Cities[Players[gui->pageParam2].branchCity[gui->pageParam]].industry[i])->ptr,
 						(int) Players[gui->pageParam2].branchFactories[gui->pageParam][i],
 						(float) Players[gui->pageParam2].branchWorkers[gui->pageParam] / (float) c,
@@ -610,10 +612,10 @@ void paintPage(Gui* gui, Guipage page) {
 			i = getPlayerFreeBranchStorage(gui->pageParam, gui->pageParam2);
 			c = getPlayerMaxBranchStorage(gui->pageParam, gui->pageParam2);
 			
-			mvprintw(y++, x, "stock: %d/%d", (int) c - i, (int) c);
+			MVPRINTW(y++, x, "stock: %d/%d", (int) c - i, (int) c);
 			y++;
 			for(i = 1; i < GT_MAX; i++) {
-				mvprintw(y++, 3, "%*s: %.3f", -11, stringFromGoodType(i)->ptr,  Players[gui->pageParam2].branchStock[gui->pageParam].stock[i]);
+				MVPRINTW(y++, 3, "%*s: %.3f", -11, stringFromGoodType(i)->ptr,  Players[gui->pageParam2].branchStock[gui->pageParam].stock[i]);
 			}
 			
 			
@@ -625,19 +627,19 @@ void paintPage(Gui* gui, Guipage page) {
 			console_initoutput(gui->term);
 			x = 3;
 			y = 3;
-			mvprintw(y++, x, "Player %s, convoy %s", Players[gui->pageParam2].name->ptr, Players[gui->pageParam2].convoys[gui->pageParam].name ? Players[gui->pageParam2].convoys[gui->pageParam].name->ptr : "unnamed");
-			mvprintw(y++, x, "sailors: %d", (int) Players[gui->pageParam2].convoys[gui->pageParam].numSailors);
+			MVPRINTW(y++, x, "Player %s, convoy %s", Players[gui->pageParam2].name->ptr, Players[gui->pageParam2].convoys[gui->pageParam].name ? Players[gui->pageParam2].convoys[gui->pageParam].name->ptr : "unnamed");
+			MVPRINTW(y++, x, "sailors: %d", (int) Players[gui->pageParam2].convoys[gui->pageParam].numSailors);
 			c = getConvoyMaxStorage(&Players[gui->pageParam2].convoys[gui->pageParam]);
-			mvprintw(y++, x, "stock: %d/%d", (int) Players[gui->pageParam2].convoys[gui->pageParam].totalload, (int) c);
+			MVPRINTW(y++, x, "stock: %d/%d", (int) Players[gui->pageParam2].convoys[gui->pageParam].totalload, (int) c);
 			if(Players[gui->pageParam2].convoys[gui->pageParam].loc == SLT_SEA) 
-				mvprintw(y++, x, "location: sea, on its way to %s", Cities[Players[gui->pageParam2].convoys[gui->pageParam].locCity].name->ptr);
+				MVPRINTW(y++, x, "location: sea, on its way to %s", Cities[Players[gui->pageParam2].convoys[gui->pageParam].locCity].name->ptr);
 			else if(Players[gui->pageParam2].convoys[gui->pageParam].loc == SLT_CITY)
-				mvprintw(y++, x, "location: port of %s", Cities[Players[gui->pageParam2].convoys[gui->pageParam].locCity].name->ptr);
+				MVPRINTW(y++, x, "location: port of %s", Cities[Players[gui->pageParam2].convoys[gui->pageParam].locCity].name->ptr);
 			y++;
 			if(Players[gui->pageParam2].convoys[gui->pageParam].totalload > 0.f) {
 				for(i = 1; i < GT_MAX; i++) {
 					if(Players[gui->pageParam2].convoys[gui->pageParam].load.stock[i] > 0.f)
-						mvprintw(++y, 3, "%*s: stock %f", -11, stringFromGoodType(i)->ptr,  Players[gui->pageParam2].convoys[gui->pageParam].load.stock[i]);
+						MVPRINTW(++y, 3, "%*s: stock %f", -11, stringFromGoodType(i)->ptr,  Players[gui->pageParam2].convoys[gui->pageParam].load.stock[i]);
 				}
 			}
 			
@@ -683,7 +685,7 @@ void paintTitlebar(Gui* gui) {
 	console_setcolors(gui->term, TITLEBAR_BG_COLOR, TITLEBAR_FONT_COLOR);
 	console_initoutput(gui->term);
 
-	mvprintw(0, 0, "Day %d, %.2d:%.2d - Speed: %d", day, hour, min, GAME_SPEED);
+	MVPRINTW(0, 0, "Day %d, %.2d:%.2d - Speed: %d", day, hour, min, GAME_SPEED);
 	
 }
 
@@ -908,7 +910,7 @@ int gui_processInput(Gui* gui) {
 			default:
 				console_setcolors(gui->term, TITLEBAR_BG_COLOR, TITLEBAR_FONT_COLOR);
 				console_initoutput(gui->term);
-				mvprintw(0, gui->w - MENU_WIDTH, "%d", c);
+				MVPRINTW(0, gui->w - MENU_WIDTH, "%d", c);
 				break;
 		}
 		paintMenu(gui, gui->activeMenu);
