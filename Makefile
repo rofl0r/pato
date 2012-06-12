@@ -15,6 +15,10 @@ CFLAGS_RCB_DBG=${CFLAGS_OWN} ${CFLAGS_DBG} -I ${INCLUDES} ${CFLAGS}
 
 all: debug
 
+clean:
+	rm -f *.o
+	rm -f pato.out
+
 optimized:
 	CFLAGS="${CFLAGS_RCB_OPT}" rcb --force $(RCBFLAGS) ${MAINFILE} $(LINKLIBS)
 
