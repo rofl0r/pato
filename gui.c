@@ -7,7 +7,8 @@
 
 #include "gui.h"
 #include "../concol/console.h"
-//RcB: DEP "../concol/console.c"
+#include "../concol/ncconsole.h"
+#include "../concol/ncconsole_chars.h"
 
 const rgb_t MENU_BGCOLOR = RGB(30, 30, 120);
 const rgb_t MENU_FONTCOLOR = RGB(255, 255, 255);
@@ -397,13 +398,13 @@ void paintMenu(Gui* gui, Menupage page) {
 		}
 	}
 	
-	console_setcolor(gui->term, MENU_BGCOLOR, 0);
-	console_setcolor(gui->term, MENU_BGCOLOR, 1);
+	console_setcolors(gui->term, MENU_BGCOLOR, MENU_BGCOLOR);
+
 	starty = 1;
 	
 	for(y = starty; y < gui->h; y++) {
 		for(x = startx; x < gui->w; x++) {
-			console_gotoxy(gui->term, x, y);
+			console_goto(gui->term, x, y);
 			console_addchar(gui->term, ' ', 0);
 		}
 	}
@@ -411,23 +412,19 @@ void paintMenu(Gui* gui, Menupage page) {
 	startx++;
 	
 	for(y = starty; y < starty + menus[page]->numElems; y++) {
-		console_setcolor(gui->term, MENU_BGCOLOR, 0);
-		
-		if(y == starty + (int) menus[page]->activeMenuEntry)
-			console_setcolor(gui->term, MENU_HIGHLIGHT_FONTCOLOR, 1);
-		else
-			console_setcolor(gui->term, MENU_FONTCOLOR, 1);
+		rgb_t fg = (y == starty + (int) menus[page]->activeMenuEntry) ? MENU_HIGHLIGHT_FONTCOLOR : MENU_FONTCOLOR;
+		console_setcolors(gui->term, MENU_BGCOLOR, fg);
 		
 		maxx = menus[page]->items[y - starty].text->size > MENU_WIDTH -2 ? MENU_WIDTH - 2 : menus[page]->items[y - starty].text->size;
 		
 		for(x = startx; x < startx + maxx; x++) {
-			console_gotoxy(gui->term, x, y);
+			console_goto(gui->term, x, y);
 			console_addchar(gui->term, menus[page]->items[y - starty].text->ptr[x - startx], (y == starty + menus[page]->activeMenuEntry) ? 0 : 0);
 		}
 	}
 	// put cursor next to highlighted entry:
 	//maxx = menus[page]->items[menus[page]->activeMenuEntry].text->size > MENU_WIDTH ? MENU_WIDTH : menus[page]->items[menus[page]->activeMenuEntry].text->size;
-	//console_gotoxy(gui->term, startx + maxx, starty + menus[page]->activeMenuEntry);
+	//console_goto(gui->term, startx + maxx, starty + menus[page]->activeMenuEntry);
 	
 	gui->activeMenu = page;
 }
@@ -435,11 +432,10 @@ void paintMenu(Gui* gui, Menupage page) {
 void clearPage(Gui* gui) {
 	size_t x, y;
 	
-	console_setcolor(gui->term, MAP_BG_COLOR, 0);
-	console_setcolor(gui->term, MAP_BG_COLOR, 1);
+	console_setcolors(gui->term, MAP_BG_COLOR, MAP_BG_COLOR);
 	for(y = 1; y < gui->h; y++) {
 		for(x = 0; x < gui->w - MENU_WIDTH; x++) {
-			console_gotoxy(gui->term, x, y);
+			console_goto(gui->term, x, y);
 			console_addchar(gui->term, ' ', 0);
 		}
 	}
@@ -486,20 +482,20 @@ void paintPage(Gui* gui, Guipage page) {
 	switch(page) {
 		case GP_MAP:
 			// paint map
-			console_setcolor(gui->term, RGB(0, 80, 0), 1);
+			console_setcolor(gui->term, 1, RGB(0, 80, 0));
 			starty = gui->areas.page.y;
 			for (y = 0; y < gui->areas.page.h; y++) {
 				in2 = gui->map_resized->data + (((y + (gui->areas.map.y * gui->zoomFactor)) * (gui->map_resized->w))* 4);
 				in2 += gui->areas.map.x * gui->zoomFactor * 4;
 				in = (rgb_t*) in2;
 				for (x = gui->areas.page.x; x < gui->areas.page.w; x++) {
-					console_setcolor(gui->term, *in, 0);
-					console_gotoxy(gui->term, x, y + starty);
+					console_setcolor(gui->term, 0, *in);
+					console_goto(gui->term, x, y + starty);
 #ifdef USE_CHECKER					
 					if (blueish(in))
 						console_addchar(gui->term, ' ', 0);
 					else
-						console_addchar(gui->term, ACS_CKBOARD, 0);
+						console_addchar(gui->term, CC_CKBOARD, 0);
 #else
 						console_addchar(gui->term, ' ', 0);
 #endif
@@ -508,8 +504,7 @@ void paintPage(Gui* gui, Guipage page) {
 			}
 			
 			//paint ships
-			console_setcolor(gui->term, MAP_BG_COLOR, 0);
-			console_setcolor(gui->term, MAP_SHIP_COLOR, 1);
+			console_setcolors(gui->term, MAP_BG_COLOR, MAP_SHIP_COLOR);
 			for(i = 0; i < numPlayers; i++) {
 				for(c = 0; c < Players[i].numConvoys; c++) {
 					if(Players[i].convoys[c].loc == SLT_SEA) {
@@ -517,7 +512,7 @@ void paintPage(Gui* gui, Guipage page) {
 						// now see if its in the visible area...
 						if(inVisibleZoomedMapArea(gui, x, y)) {
 							translateZoomedCoordsToGuiCoords(gui, &x, &y);
-							console_gotoxy(gui->term, x, y);
+							console_goto(gui->term, x, y);
 							console_addchar(gui->term, '+', 0);
 						}
 					}
@@ -525,14 +520,13 @@ void paintPage(Gui* gui, Guipage page) {
 			}
 			
 			//paint cities
-			console_setcolor(gui->term, RGB(0, 0, 0), 0);
-			console_setcolor(gui->term, MAP_CITY_COLOR, 1);
+			console_setcolors(gui->term, RGB(0, 0, 0), MAP_CITY_COLOR);
 			for(i = 0; i < numCities; i++) {
 				translateGameCoordsToZoomedCoords(gui, Cities[i].coords.x, Cities[i].coords.y, &x, &y);
 				fprintf(dbgf, "translated %f, %f to %d, %d\n", Cities[i].coords.x, Cities[i].coords.y, (int)x, (int)y);
 				if(inVisibleZoomedMapArea(gui, x, y)) {
 					translateZoomedCoordsToGuiCoords(gui, &x, &y);
-					console_gotoxy(gui->term, x, y);
+					console_goto(gui->term, x, y);
 					console_addchar(gui->term, 'X', 0);
 					if(x + 2 + Cities[i].name->size < gui->areas.page.w)
 						mvprintw(y, x + 2, "%s", Cities[i].name->ptr);
@@ -542,8 +536,7 @@ void paintPage(Gui* gui, Guipage page) {
 			break;
 		case GP_CITY:
 			clearPage(gui);
-			console_setcolor(gui->term, MAP_BG_COLOR, 0);
-			console_setcolor(gui->term, MENU_FONTCOLOR, 1);
+			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
 			console_initoutput(gui->term);
 			
 			mvprintw(3, 3, "status for %s", Cities[gui->pageParam].name->ptr);
@@ -561,8 +554,7 @@ void paintPage(Gui* gui, Guipage page) {
 			break;
 		case GP_PLAYER:
 			clearPage(gui);
-			console_setcolor(gui->term, MAP_BG_COLOR, 0);
-			console_setcolor(gui->term, MENU_FONTCOLOR, 1);
+			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
 			console_initoutput(gui->term);
 			x = 3;
 			y = 3;
@@ -578,8 +570,7 @@ void paintPage(Gui* gui, Guipage page) {
 			break;
 		case GP_BRANCH:
 			clearPage(gui);
-			console_setcolor(gui->term, MAP_BG_COLOR, 0);
-			console_setcolor(gui->term, MENU_FONTCOLOR, 1);
+			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
 			console_initoutput(gui->term);
 			x = 3;
 			y = 3;
@@ -630,8 +621,7 @@ void paintPage(Gui* gui, Guipage page) {
 			
 		case GP_CONVOY:
 			clearPage(gui);
-			console_setcolor(gui->term, MAP_BG_COLOR, 0);
-			console_setcolor(gui->term, MENU_FONTCOLOR, 1);
+			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
 			console_initoutput(gui->term);
 			x = 3;
 			y = 3;
@@ -655,8 +645,7 @@ void paintPage(Gui* gui, Guipage page) {
 			
 		case GP_TRADE:
 			clearPage(gui);
-			console_setcolor(gui->term, MAP_BG_COLOR, 0);
-			console_setcolor(gui->term, MENU_FONTCOLOR, 1);
+			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
 			console_initoutput(gui->term);
 			x = 3;
 			y = 3;
@@ -675,9 +664,8 @@ void paintPage(Gui* gui, Guipage page) {
 void paintTitlebar(Gui* gui) {
 	int day, hour, min, sec;
 	size_t x;
-	console_setcolor(gui->term, TITLEBAR_BG_COLOR, 0);
-	console_setcolor(gui->term, TITLEBAR_BG_COLOR, 1);
-	console_gotoxy(gui->term, 0, 0);
+	console_setcolors(gui->term, TITLEBAR_BG_COLOR, TITLEBAR_BG_COLOR);
+	console_goto(gui->term, 0, 0);
 	
 	for(x = 0; x < gui->w; x++) {
 		console_printchar(gui->term, ' ', 0);
@@ -692,8 +680,7 @@ void paintTitlebar(Gui* gui) {
 	sec = sec - (hour * (world.minutesperhour * world.secondsperminute));
 	min = sec / world.minutesperhour;
 
-	console_setcolor(gui->term, TITLEBAR_BG_COLOR, 0);
-	console_setcolor(gui->term, TITLEBAR_FONT_COLOR, 1);
+	console_setcolors(gui->term, TITLEBAR_BG_COLOR, TITLEBAR_FONT_COLOR);
 	console_initoutput(gui->term);
 
 	mvprintw(0, 0, "Day %d, %.2d:%.2d - Speed: %d", day, hour, min, GAME_SPEED);
@@ -764,7 +751,7 @@ void gui_init(Gui* gui) {
 	
 	dbgf = fopen("debug.gui", "w");
 	
-	gui->term = &gui->term_struct;
+	gui->term = &gui->term_struct.super;
 	console_init(gui->term);
 	
 	gui->_resize_in_progress = 0;
@@ -919,8 +906,7 @@ int gui_processInput(Gui* gui) {
 				gui_resizeMap(gui, gui->zoomFactor);
 				break;
 			default:
-				console_setcolor(gui->term, TITLEBAR_BG_COLOR, 0);
-				console_setcolor(gui->term, TITLEBAR_FONT_COLOR, 1);
+				console_setcolors(gui->term, TITLEBAR_BG_COLOR, TITLEBAR_FONT_COLOR);
 				console_initoutput(gui->term);
 				mvprintw(0, gui->w - MENU_WIDTH, "%d", c);
 				break;

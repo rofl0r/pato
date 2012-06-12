@@ -1,6 +1,6 @@
 #include "pato.h"
 #include "imginterface.h"
-#include "../concol/console.h"
+#include "../concol/ncconsole.h"
 
 #define MENU_WIDTH 20
 
@@ -81,8 +81,8 @@ typedef struct {
 typedef struct {
 	size_t persona;
 	Guiareas areas;
-	console term_struct;
-	console* term;
+	NcConsole term_struct;
+	Console* term;
 	Guipage activePage;
 	size_t pageParam;
 	size_t pageParam2;
