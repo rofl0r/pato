@@ -701,7 +701,7 @@ void gui_resized(Gui* gui) {
 	if(!gui->_resize_in_progress && ioctl(STDIN_FILENO, TIOCGWINSZ, (char *) &termSize) >= 0) {
 		gui->_resize_in_progress = 1;
 		resizeterm((int)termSize.ws_row, (int)termSize.ws_col);
-		console_getsize(gui->term, &w, &h);
+		console_getbounds(gui->term, &w, &h);
 		gui->w = w;
 		gui->h = h;
 		gui_adjust_areas(gui);
@@ -756,7 +756,7 @@ void gui_init(Gui* gui) {
 	
 	gui->_resize_in_progress = 0;
 	
-	console_getsize(gui->term, &w, &h);
+	console_getbounds(gui->term, &w, &h);
 	gui->w = w;
 	gui->h = h;
 	
