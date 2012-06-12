@@ -1,0 +1,11 @@
+*~
+a.out
+*.o
+*.lo
+*.a
+*.so
+*.out
+*.rcb
+*.log
+pato
+
