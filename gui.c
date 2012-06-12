@@ -40,7 +40,7 @@ const Menu menu_empty = {
 				GP_NONE,
 				0,0
 			},
-		},	
+		},
 	}
 };
 
@@ -167,9 +167,9 @@ Menu menu_player_main = {
 				0,0
 			}
 			
-		}		
+		}
 		
-	}	
+	}
 	
 };
 
@@ -330,7 +330,7 @@ void createBranchMenu(Gui* gui) {
 		if(havePlayer(gui)) {
 			gui->dynMenu->items[b + 1].action.type |= MAT_SHOW_MENU;
 			gui->dynMenu->items[b + 1].action.targetMenu = MP_PLAYER_BRANCH;
-		}	
+		}
 		gui->dynMenu->items[b + 1].action.targetPage = GP_BRANCH;
 		gui->dynMenu->items[b + 1].action.param1 = b;
 		gui->dynMenu->items[b + 1].action.param2 = player;
@@ -463,7 +463,7 @@ void translateGameCoordsToZoomedCoords(Gui* gui, float orgX, float orgY, size_t*
 }
 
 inline int inVisibleZoomedMapArea(Gui* gui, size_t x, size_t y) {
-	return	
+	return
 		x > gui->areas.map.x * gui->zoomFactor &&
 		x < (gui->areas.map.x * gui->zoomFactor) + gui->areas.page.w &&
 		y > gui->areas.map.y * gui->zoomFactor &&
@@ -493,7 +493,7 @@ void paintPage(Gui* gui, Guipage page) {
 				for (x = gui->areas.page.x; x < gui->areas.page.w; x++) {
 					console_setcolor(gui->term, 0, *in);
 					console_goto(gui->term, x, y + starty);
-#ifdef USE_CHECKER					
+#ifdef USE_CHECKER
 					if (blueish(in))
 						console_addchar(gui->term, ' ', 0);
 					else
@@ -585,7 +585,7 @@ void paintPage(Gui* gui, Guipage page) {
 			for(i = 0; i < CITY_MAX_INDUSTRYTYPES; i++)
 				if(Players[gui->pageParam2].branchFactories[gui->pageParam][i]) 
 					c++;
-			if(c) {	
+			if(c) {
 				for(i = 0; i < CITY_MAX_INDUSTRYTYPES; i++) {
 					MVPRINTW(y++, 3, "%*s: %d x %.3f/%.3f -> %.3f/%.3f", -11,
 						stringFromGoodType(Cities[Players[gui->pageParam2].branchCity[gui->pageParam]].industry[i])->ptr,
@@ -606,7 +606,7 @@ void paintPage(Gui* gui, Guipage page) {
 						(int) Players[gui->pageParam2].branchFactories[gui->pageParam][i]
 					);
 				}
-			}	
+			}
 
 			y++;
 			i = getPlayerFreeBranchStorage(gui->pageParam, gui->pageParam2);
@@ -862,7 +862,7 @@ int gui_processInput(Gui* gui) {
 				else
 					menus[gui->activeMenu]->activeMenuEntry--;
 				break;
-			case KEY_DOWN:	
+			case KEY_DOWN:
 				if(menus[gui->activeMenu]->activeMenuEntry == menus[gui->activeMenu]->numElems -1)
 					menus[gui->activeMenu]->activeMenuEntry = 0;
 				else
@@ -938,7 +938,7 @@ int gui_processInput(Gui* gui) {
 						gui->areas.map.y += 8;
 					else 
 						gui->areas.map.y = gui->map->h;
-				}	
+				}
 				break;
 			case KEY_UP:
 				if(gui->activePage == GP_MAP) {
