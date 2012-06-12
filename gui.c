@@ -844,7 +844,7 @@ void gui_free(Gui* gui) {
 	if(gui->dynMenu)
 		free(gui->dynMenu);
 	
-	console_quit(gui->term);
+	console_cleanup(gui->term);
 }
 
 int gui_processInput(Gui* gui) {
