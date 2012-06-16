@@ -1611,7 +1611,7 @@ int main(int argc, char** argv) {
 	initBuildings();
 	initPlayers();
 	gui_init(&gui);
-	signal(SIGWINCH, resized);
+	signal(SIGWINCH, resized); //FIXME this is ncurses specific
 	while(1) {
 		// lets cheat... to speed up
 		//world.date += world.secondsperminute - 1;

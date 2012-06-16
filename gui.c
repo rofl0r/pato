@@ -4,11 +4,13 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <termios.h>
+#include <stdio.h>
 
 #include "gui.h"
 #include "../concol/console.h"
-#include "../concol/ncconsole.h"
-#include "../concol/ncconsole_chars.h"
+#include "../concol/console_backend.h"
+#include "../concol/console_keys.h"
+
 
 #define MVPRINTW(y, x, ...) console_printfxy(gui->term, (x), (y), __VA_ARGS__)
 
@@ -694,10 +696,12 @@ void gui_repaint(Gui* gui) {
 		paintMenu(gui, gui->activeMenu);
 		paintPage(gui, gui->activePage);
 		paintTitlebar(gui);
+		console_refresh(gui->term); //repaint
 	}
 }
 
 void gui_resized(Gui* gui) {
+#if (CONSOLE_BACKEND == NCURSES_CONSOLE)
 	struct winsize termSize;
 	int w, h;
 	if(!gui->_resize_in_progress && ioctl(STDIN_FILENO, TIOCGWINSZ, (char *) &termSize) >= 0) {
@@ -711,6 +715,7 @@ void gui_resized(Gui* gui) {
 		microsleep(10000);
 		gui->_resize_in_progress = 0;
 	}
+#endif
 }
 
 void gui_resizeMap(Gui* gui, int scaleFactor) {
@@ -755,6 +760,7 @@ void gui_init(Gui* gui) {
 	
 	gui->term = &gui->term_struct.super;
 	console_init(gui->term);
+	//kill(getpid(), SIGSTOP);
 	
 	gui->_resize_in_progress = 0;
 	
@@ -828,10 +834,6 @@ void gui_init(Gui* gui) {
 	MAP_BG_COLOR = *(rgb_t*) gui->map->data;
 	
 	gui_repaint(gui);
-	
-	timeout(0); // set NCURSES getch to nonblocking
-	nonl(); // get return key events
-	
 }
 
 void gui_free(Gui* gui) {
@@ -852,26 +854,26 @@ void gui_free(Gui* gui) {
 int gui_processInput(Gui* gui) {
 	size_t store;
 	if(gui->_resize_in_progress) return 0;
-	int c = console_getkey(gui->term);
-	if(c == ERR) return 0;
+	int c = console_getkey_nb(gui->term);
+	if(c == CK_ERR) return 0;
 	if(gui->col == IC_MENU) {
 		switch(c) {
-			case KEY_UP:
+			case CK_CURSOR_UP:
 				if(menus[gui->activeMenu]->activeMenuEntry == 0)
 					menus[gui->activeMenu]->activeMenuEntry = menus[gui->activeMenu]->numElems -1;
 				else
 					menus[gui->activeMenu]->activeMenuEntry--;
 				break;
-			case KEY_DOWN:
+			case CK_CURSOR_DOWN:
 				if(menus[gui->activeMenu]->activeMenuEntry == menus[gui->activeMenu]->numElems -1)
 					menus[gui->activeMenu]->activeMenuEntry = 0;
 				else
 					menus[gui->activeMenu]->activeMenuEntry++;
 				break;
-			case 43: // plus on numeric pad
+			case CK_PLUS:
 				GAME_SPEED = GAME_SPEED >= world.secondsperminute ? world.secondsperminute : GAME_SPEED * 2;
 				break;
-			case 45: // minus
+			case CK_MINUS:
 				GAME_SPEED = GAME_SPEED > 2 ? GAME_SPEED / 2 : 1;
 				break;
 			case 'q': 
@@ -902,7 +904,7 @@ int gui_processInput(Gui* gui) {
 					paintPage(gui, gui->activePage);
 				}
 				break;
-			case 9:
+			case CK_TAB:
 				gui->col = IC_PAGE;
 				gui_adjust_areas(gui);
 				gui_resizeMap(gui, gui->zoomFactor);
@@ -916,23 +918,23 @@ int gui_processInput(Gui* gui) {
 		paintMenu(gui, gui->activeMenu);
 	} else if (gui->col == IC_PAGE) {
 		switch(c) {
-			case 9: // tab
+			case CK_TAB:
 				gui->col = IC_MENU;
 				gui_adjust_areas(gui);
 				gui_resizeMap(gui, gui->zoomFactor);
 				
 				break;
-			case 43: // plus on numeric pad
+			case CK_PLUS:
 				if(gui->activePage == GP_MAP) {
 					gui_resizeMap(gui, gui->zoomFactor * 2);
 				}
 				break;
-			case 45: // minus
+			case CK_MINUS:
 				if(gui->activePage == GP_MAP && gui->zoomFactor > 1) {
 					gui_resizeMap(gui, gui->zoomFactor / 2);
 				}
 				break;
-			case KEY_DOWN:
+			case CK_CURSOR_DOWN:
 				if(gui->activePage == GP_MAP) {
 					if((gui->areas.map.y + 8) < gui->map->h)
 						gui->areas.map.y += 8;
@@ -940,7 +942,7 @@ int gui_processInput(Gui* gui) {
 						gui->areas.map.y = gui->map->h;
 				}
 				break;
-			case KEY_UP:
+			case CK_CURSOR_UP:
 				if(gui->activePage == GP_MAP) {
 					if(gui->areas.map.y > (8 * gui->zoomFactor)) 
 						gui->areas.map.y -= 8;
@@ -948,7 +950,7 @@ int gui_processInput(Gui* gui) {
 						gui->areas.map.y = 0;
 				}
 				break;
-			case KEY_RIGHT:
+			case CK_CURSOR_RIGHT:
 				if(gui->activePage == GP_MAP) {
 					if((gui->areas.map.x + 8) < gui->map->w)
 						gui->areas.map.x += 8;
@@ -956,7 +958,7 @@ int gui_processInput(Gui* gui) {
 						gui->areas.map.x = gui->map->w;
 					}
 				break;
-			case KEY_LEFT:
+			case CK_CURSOR_LEFT:
 				if(gui->activePage == GP_MAP) {
 					if(gui->areas.map.x > (8 * gui->zoomFactor)) 
 						gui->areas.map.x -= 8;
@@ -970,6 +972,8 @@ int gui_processInput(Gui* gui) {
 		}
 		paintPage(gui, gui->activePage);
 	}
+	//console_refresh(gui->term); //repaint
+	gui_repaint(gui);
 	return 0;
 }
 

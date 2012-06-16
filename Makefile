@@ -1,6 +1,6 @@
 INCLUDES="."
 LINKDIRS=
-LINKLIBS=-lncurses -llept -lm
+LINKLIBS=-llept -lm
 
 MAINFILE=pato.c
 
@@ -18,6 +18,7 @@ all: debug
 clean:
 	rm -f *.o
 	rm -f pato.out
+	rm -f *.rcb
 
 optimized:
 	CFLAGS="${CFLAGS_RCB_OPT}" rcb --force $(RCBFLAGS) ${MAINFILE} $(LINKLIBS)
