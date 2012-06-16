@@ -8,4 +8,5 @@ a.out
 *.rcb
 *.log
 pato
-
+pato.out
+config.mak
