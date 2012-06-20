@@ -751,7 +751,9 @@ void gui_resizeMap(Gui* gui, int scaleFactor) {
 		free(temp);
 	}
 }
-
+#if (CONSOLE_BACKEND == SDL_CONSOLE)
+#include "../concol/fonts/testfont.h"
+#endif
 void gui_init(Gui* gui) {
 	size_t i;
 	int w, h;
@@ -760,6 +762,10 @@ void gui_init(Gui* gui) {
 	
 	gui->term = &gui->term_struct.super;
 	console_init(gui->term);
+#if (CONSOLE_BACKEND == SDL_CONSOLE)
+	point res = {800, 600};
+	sdlconsole_init(&gui->term_struct, res, &testfont);
+#endif
 	//kill(getpid(), SIGSTOP);
 	
 	gui->_resize_in_progress = 0;
