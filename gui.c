@@ -8,8 +8,8 @@
 
 #include "gui.h"
 #include "../concol/console.h"
-#include "../concol/console_backend.h"
 #include "../concol/console_keys.h"
+#include <ncurses.h>
 
 
 #define MVPRINTW(y, x, ...) console_printfxy(gui->term, (x), (y), __VA_ARGS__)
@@ -499,7 +499,7 @@ void paintPage(Gui* gui, Guipage page) {
 					if (blueish(in))
 						console_addchar(gui->term, ' ', 0);
 					else
-						console_addchar(gui->term, CC_CKBOARD, 0);
+						console_addchar(gui->term, CCT(cc_ckboard), 0);
 #else
 						console_addchar(gui->term, ' ', 0);
 #endif
@@ -700,22 +700,25 @@ void gui_repaint(Gui* gui) {
 	}
 }
 
+//RcB: LINK "-lncurses"
 void gui_resized(Gui* gui) {
-#if (CONSOLE_BACKEND == NCURSES_CONSOLE)
 	struct winsize termSize;
 	int w, h;
-	if(!gui->_resize_in_progress && ioctl(STDIN_FILENO, TIOCGWINSZ, (char *) &termSize) >= 0) {
-		gui->_resize_in_progress = 1;
-		resizeterm((int)termSize.ws_row, (int)termSize.ws_col);
-		console_getbounds(gui->term, &w, &h);
-		gui->w = w;
-		gui->h = h;
-		gui_adjust_areas(gui);
-		//gui_resizeMap(gui, gui->zoomFactor);
-		microsleep(10000);
-		gui->_resize_in_progress = 0;
+	/* FIXME check if this can or should be done without using ncurses directly 
+	   this way we need to link ncurses even if we don't use it */
+	if(console_getbackendtype(gui->term) == cb_ncurses) {
+		if(!gui->_resize_in_progress && ioctl(STDIN_FILENO, TIOCGWINSZ, (char *) &termSize) >= 0) {
+			gui->_resize_in_progress = 1;
+			resizeterm((int)termSize.ws_row, (int)termSize.ws_col);
+			console_getbounds(gui->term, &w, &h);
+			gui->w = w;
+			gui->h = h;
+			gui_adjust_areas(gui);
+			//gui_resizeMap(gui, gui->zoomFactor);
+			microsleep(10000);
+			gui->_resize_in_progress = 0;
+		}
 	}
-#endif
 }
 
 void gui_resizeMap(Gui* gui, int scaleFactor) {
@@ -751,21 +754,18 @@ void gui_resizeMap(Gui* gui, int scaleFactor) {
 		free(temp);
 	}
 }
-#if (CONSOLE_BACKEND == SDL_CONSOLE)
-#include "../concol/fonts/testfont.h"
-#endif
+
+#include "../concol/fonts/allfonts.h"
 void gui_init(Gui* gui) {
 	size_t i;
 	int w, h;
 	
 	dbgf = fopen("debug.gui", "w");
 	
-	gui->term = &gui->term_struct.super;
+	gui->term = &gui->term_struct;
 	console_init(gui->term);
-#if (CONSOLE_BACKEND == SDL_CONSOLE)
 	point res = {800, 600};
-	sdlconsole_init(&gui->term_struct, res, &testfont);
-#endif
+	console_init_graphics(&gui->term_struct, res, FONT);
 	//kill(getpid(), SIGSTOP);
 	
 	gui->_resize_in_progress = 0;
