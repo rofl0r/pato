@@ -95,7 +95,6 @@ typedef struct {
 	size_t h;
 	size_t zoomFactor;
 	Inputcolumn col;
-	int _resize_in_progress;
 } Gui;
 
 void gui_init(Gui* gui);

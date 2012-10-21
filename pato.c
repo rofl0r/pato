@@ -31,8 +31,6 @@ bug repeated resizing of the terminal will crash game
 #include <stdint.h>
 #include <math.h>
 #include <errno.h>
-#include <signal.h>
-
 
 #include "../lib/include/iniparser.h"
 
@@ -1592,16 +1590,11 @@ int microsleep(long microsecs) {
 	return ret;	
 }
 
-Gui gui;
-
-void resized(int dummy) {
-	(void) dummy;
-	gui_resized(&gui);
-}
-
 int main(int argc, char** argv) {
 	(void) argc;
 	(void) argv;
+	Gui gui;
+
 	dbg = fopen("debug.pato", "w");
 
 	srand(time(NULL));
@@ -1611,7 +1604,6 @@ int main(int argc, char** argv) {
 	initBuildings();
 	initPlayers();
 	gui_init(&gui);
-	signal(SIGWINCH, resized); //FIXME this is ncurses specific
 	while(1) {
 		// lets cheat... to speed up
 		//world.date += world.secondsperminute - 1;

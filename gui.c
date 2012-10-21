@@ -1,15 +1,10 @@
 #include <string.h>
-#include <signal.h>
-#include <stropts.h>
-#include <sys/ioctl.h>
 #include <unistd.h>
-#include <termios.h>
 #include <stdio.h>
 
 #include "gui.h"
 #include "../concol/console.h"
 #include "../concol/console_keys.h"
-#include <ncurses.h>
 
 
 #define MVPRINTW(y, x, ...) console_printfxy(gui->term, (x), (y), __VA_ARGS__)
@@ -388,8 +383,10 @@ void paintMenu(Gui* gui, Menupage page) {
 		return;
 	
 	if(menus[page] == NULL) {
-		if(gui->dynMenu)
+		if(gui->dynMenu) {
 			free(gui->dynMenu);
+			gui->dynMenu = NULL;
+		}
 		switch(page) {
 			case MP_BRANCHES: case MP_PLAYER_BRANCHES:
 				createBranchMenu(gui);
@@ -692,33 +689,21 @@ void paintTitlebar(Gui* gui) {
 }
 
 void gui_repaint(Gui* gui) {
-	if(!gui->_resize_in_progress) {
-		paintMenu(gui, gui->activeMenu);
-		paintPage(gui, gui->activePage);
-		paintTitlebar(gui);
-		console_refresh(gui->term); //repaint
-	}
+	paintMenu(gui, gui->activeMenu);
+	paintPage(gui, gui->activePage);
+	paintTitlebar(gui);
+	console_refresh(gui->term); //repaint
 }
 
-//RcB: LINK "-lncurses"
 void gui_resized(Gui* gui) {
-	struct winsize termSize;
 	int w, h;
-	/* FIXME check if this can or should be done without using ncurses directly 
-	   this way we need to link ncurses even if we don't use it */
-	if(console_getbackendtype(gui->term) == cb_ncurses) {
-		if(!gui->_resize_in_progress && ioctl(STDIN_FILENO, TIOCGWINSZ, (char *) &termSize) >= 0) {
-			gui->_resize_in_progress = 1;
-			resizeterm((int)termSize.ws_row, (int)termSize.ws_col);
-			console_getbounds(gui->term, &w, &h);
-			gui->w = w;
-			gui->h = h;
-			gui_adjust_areas(gui);
-			//gui_resizeMap(gui, gui->zoomFactor);
-			microsleep(10000);
-			gui->_resize_in_progress = 0;
-		}
-	}
+	console_getbounds(gui->term, &w, &h);
+	gui->w = w;
+	gui->h = h;
+	gui_adjust_areas(gui);
+	gui_resizeMap(gui, gui->zoomFactor);
+	//microsleep(10000);
+	gui_repaint(gui);
 }
 
 void gui_resizeMap(Gui* gui, int scaleFactor) {
@@ -726,10 +711,11 @@ void gui_resizeMap(Gui* gui, int scaleFactor) {
 	int neww, newh;
 	int halfh, halfw;
 	Image* temp;
-	if(gui->_resize_in_progress) 
-		return;
-	if(gui->map_resized != NULL) 
+
+	if(gui->map_resized != NULL) {
 		free (gui->map_resized);
+		gui->map_resized = NULL;
+	}
 	
 	gui->zoomFactor = scaleFactor;
 	
@@ -762,13 +748,15 @@ void gui_init(Gui* gui) {
 	
 	dbgf = fopen("debug.gui", "w");
 	
+	gui->dynMenu = NULL;
+	gui->map = NULL;
+	gui->map_resized = NULL;
+	
 	gui->term = &gui->term_struct;
 	console_init(gui->term);
 	point res = {800, 600};
 	console_init_graphics(&gui->term_struct, res, FONT);
 	//kill(getpid(), SIGSTOP);
-	
-	gui->_resize_in_progress = 0;
 	
 	console_getbounds(gui->term, &w, &h);
 	gui->w = w;
@@ -859,11 +847,15 @@ void gui_free(Gui* gui) {
 
 int gui_processInput(Gui* gui) {
 	size_t store;
-	if(gui->_resize_in_progress) return 0;
 	int c = console_getkey_nb(gui->term);
-	if(c == CK_ERR) return 0;
+	if(c == CK_ERR || c == CK_MOUSE_EVENT) return 0;
+	if(c == CK_RESIZE_EVENT) {
+		gui_resized(gui);
+		return 0;
+	}
+	
 	if(gui->col == IC_MENU) {
-		switch(c) {
+		switch(c & CK_MASK) {
 			case CK_CURSOR_UP:
 				if(menus[gui->activeMenu]->activeMenuEntry == 0)
 					menus[gui->activeMenu]->activeMenuEntry = menus[gui->activeMenu]->numElems -1;
@@ -882,7 +874,7 @@ int gui_processInput(Gui* gui) {
 			case CK_MINUS:
 				GAME_SPEED = GAME_SPEED > 2 ? GAME_SPEED / 2 : 1;
 				break;
-			case 'q': 
+			case 'q': case CK_QUIT:
 				return -1;
 			case 'I':
 				if(gui->activeMenu == MP_PLAYER) {
@@ -891,7 +883,7 @@ int gui_processInput(Gui* gui) {
 					gui->activeMenu = MP_PLAYER_MAIN;
 				}
 				break;
-			case '\r':
+			case CK_RETURN:
 				store = gui->activeMenu;
 				if(menus[store]->items[menus[store]->activeMenuEntry].action.type & MAT_SHOW_MENU) {
 					gui->menuParam = menus[store]->items[menus[store]->activeMenuEntry].action.param1;
@@ -923,7 +915,7 @@ int gui_processInput(Gui* gui) {
 		}
 		paintMenu(gui, gui->activeMenu);
 	} else if (gui->col == IC_PAGE) {
-		switch(c) {
+		switch(c & CK_MASK) {
 			case CK_TAB:
 				gui->col = IC_MENU;
 				gui_adjust_areas(gui);
