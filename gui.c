@@ -569,40 +569,42 @@ void paintPage(Gui* gui, Guipage page) {
 			}
 			
 			break;
-		case GP_BRANCH:
+		case GP_BRANCH: {
 			clearPage(gui);
 			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
 			console_initoutput(gui->term);
+			Player* p = &Players[gui->pageParam2];
+			size_t brid = gui->pageParam;
 			x = 3;
 			y = 3;
-			MVPRINTW(y++, x, "Player %s, branch %s", Players[gui->pageParam2].name->ptr, Cities[Players[gui->pageParam2].branchCity[gui->pageParam]].name->ptr);
-			MVPRINTW(y++, x, "money: %llu", Players[gui->pageParam2].money);
-			MVPRINTW(y++, x, "workers: %d", (int) Players[gui->pageParam2].branchWorkers[gui->pageParam]);
+			MVPRINTW(y++, x, "Player %s, branch %s", p->name->ptr, Cities[p->branchCity[brid]].name->ptr);
+			MVPRINTW(y++, x, "money: %llu", p->money);
+			MVPRINTW(y++, x, "workers: %d", (int) p->branchWorkers[brid]);
 			MVPRINTW(y++, x, "%s:", "factories");
 			y++;
 			c = 0;
 			for(i = 0; i < CITY_MAX_INDUSTRYTYPES; i++)
-				if(Players[gui->pageParam2].branchFactories[gui->pageParam][i]) 
+				if(p->branchFactories[brid][i]) 
 					c++;
 			if(c) {
 				for(i = 0; i < CITY_MAX_INDUSTRYTYPES; i++) {
 					MVPRINTW(y++, 3, "%*s: %d x %.3f/%.3f -> %.3f/%.3f", -11,
-						stringFromGoodType(Cities[Players[gui->pageParam2].branchCity[gui->pageParam]].industry[i])->ptr,
-						(int) Players[gui->pageParam2].branchFactories[gui->pageParam][i],
-						(float) Players[gui->pageParam2].branchWorkers[gui->pageParam] / (float) c,
-						(float) Players[gui->pageParam2].branchFactories[gui->pageParam][i] * factoryProps.maxworkersperfactory,
+						stringFromGoodType(Cities[p->branchCity[brid]].industry[i])->ptr,
+						(int) p->branchFactories[brid][i],
+						(float) p->branchWorkers[brid] / (float) c,
+						(float) p->branchFactories[brid][i] * factoryProps.maxworkersperfactory,
 						 
-						((float) Factories[Cities[Players[gui->pageParam2].branchCity[gui->pageParam]].industry[i]].yield * 
-						(float) Players[gui->pageParam2].branchFactories[gui->pageParam][i]) *
+						((float) Factories[Cities[p->branchCity[brid]].industry[i]].yield * 
+						(float) p->branchFactories[brid][i]) *
 						(
 							
-							((float) Players[gui->pageParam2].branchWorkers[gui->pageParam] / (float) c) /
-							(factoryProps.maxworkersperfactory * Players[gui->pageParam2].branchFactories[gui->pageParam][i])
+							((float) p->branchWorkers[brid] / (float) c) /
+							(factoryProps.maxworkersperfactory * p->branchFactories[brid][i])
 							
 						),
 						 
-						(float) Factories[Cities[Players[gui->pageParam2].branchCity[gui->pageParam]].industry[i]].yield * 
-						(int) Players[gui->pageParam2].branchFactories[gui->pageParam][i]
+						(float) Factories[Cities[p->branchCity[brid]].industry[i]].yield * 
+						(int) p->branchFactories[brid][i]
 					);
 				}
 			}
@@ -614,12 +616,11 @@ void paintPage(Gui* gui, Guipage page) {
 			MVPRINTW(y++, x, "stock: %d/%d", (int) c - i, (int) c);
 			y++;
 			for(i = 1; i < GT_MAX; i++) {
-				MVPRINTW(y++, 3, "%*s: %.3f", -11, stringFromGoodType(i)->ptr,  Players[gui->pageParam2].branchStock[gui->pageParam].stock[i]);
+				MVPRINTW(y++, 3, "%*s: %.3f", -11, stringFromGoodType(i)->ptr,  p->branchStock[brid].stock[i]);
 			}
 			
-			
 			break;
-			
+		}
 		case GP_CONVOY:
 			clearPage(gui);
 			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
