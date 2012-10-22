@@ -695,17 +695,6 @@ void gui_repaint(Gui* gui) {
 	console_refresh(gui->term); //repaint
 }
 
-void gui_resized(Gui* gui) {
-	int w, h;
-	console_getbounds(gui->term, &w, &h);
-	gui->w = w;
-	gui->h = h;
-	gui_adjust_areas(gui);
-	gui_resizeMap(gui, gui->zoomFactor);
-	//microsleep(10000);
-	gui_repaint(gui);
-}
-
 void gui_resizeMap(Gui* gui, int scaleFactor) {
 	rgb_t bgcol;
 	int neww, newh;
@@ -739,6 +728,17 @@ void gui_resizeMap(Gui* gui, int scaleFactor) {
 		img_embed(gui->map_resized, temp, halfw, halfh);
 		free(temp);
 	}
+}
+
+void gui_resized(Gui* gui) {
+	int w, h;
+	console_getbounds(gui->term, &w, &h);
+	gui->w = w;
+	gui->h = h;
+	gui_adjust_areas(gui);
+	gui_resizeMap(gui, gui->zoomFactor);
+	//microsleep(10000);
+	gui_repaint(gui);
 }
 
 #include "../concol/fonts/allfonts.h"
