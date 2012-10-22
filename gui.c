@@ -854,6 +854,11 @@ int gui_processInput(Gui* gui) {
 		return 0;
 	}
 	
+	switch(c & CK_MASK) {
+		case CK_QUIT:
+			return -1;
+	}
+	
 	if(gui->col == IC_MENU) {
 		switch(c & CK_MASK) {
 			case CK_CURSOR_UP:
@@ -874,7 +879,7 @@ int gui_processInput(Gui* gui) {
 			case CK_MINUS:
 				GAME_SPEED = GAME_SPEED > 2 ? GAME_SPEED / 2 : 1;
 				break;
-			case 'q': case CK_QUIT:
+			case 'q':
 				return -1;
 			case 'I':
 				if(gui->activeMenu == MP_PLAYER) {
