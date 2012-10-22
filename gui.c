@@ -473,6 +473,8 @@ inline int blueish(rgb_t* col) {
 	return col->b > col->r && col->b > col->g;
 }
 #define USE_CHECKER
+/* this is responsible for painting the content of the left column;
+ * map view, statistics and so on. */
 void paintPage(Gui* gui, Guipage page) {
 	size_t i, c;
 	size_t x, y, starty;
@@ -535,46 +537,59 @@ void paintPage(Gui* gui, Guipage page) {
 			}
 			
 			break;
-		case GP_CITY:
+		case GP_CITY: {
+			size_t cid = gui->pageParam;
 			clearPage(gui);
 			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
 			console_initoutput(gui->term);
 			
-			MVPRINTW(3, 3, "status for %s", Cities[gui->pageParam].name->ptr);
+			MVPRINTW(3, 3, "status for %s", Cities[cid].name->ptr);
 			y = 4;
-			MVPRINTW(++y, 3, "money: %lld", Cities[gui->pageParam].money);
+			MVPRINTW(++y, 3, "money: %lld", Cities[cid].money);
 			MVPRINTW(++y, 3, "population:");
 			for(i = 1; i < PT_MAX; i++) {
-				MVPRINTW(++y, 3, "%s: count: %d, mood: %f", stringFromPopulationType(i)->ptr, (int) Cities[gui->pageParam].population[i], Cities[gui->pageParam].populationMood[i]);
+				MVPRINTW(++y, 3, "%s: count: %d, mood: %f", 
+					 stringFromPopulationType(i)->ptr, 
+					 (int) Cities[cid].population[i], 
+					 Cities[cid].populationMood[i]);
 			}
 			y++;
 			MVPRINTW(++y, 3, "market:");
 			for(i = 1; i < GT_MAX; i++) {
-				MVPRINTW(++y, 3, "%*s: %.3f", -11, stringFromGoodType(i)->ptr, Cities[gui->pageParam].market.stock[i]);
+				MVPRINTW(++y, 3, "%*s: %.3f", -11, 
+					 stringFromGoodType(i)->ptr, 
+					 Cities[cid].market.stock[i]);
 			}
 			break;
-		case GP_PLAYER:
+		} 
+		case GP_PLAYER: {
+			// FIXME is playerid passed in pageparam1 ?
+			size_t pid = gui->pageParam;
+			Player* p = &Players[pid];
 			clearPage(gui);
 			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
 			console_initoutput(gui->term);
 			x = 3;
 			y = 3;
-			MVPRINTW(y++, x, "status for %s [press 'i' to impersonate]", Players[gui->pageParam].name->ptr);
-			MVPRINTW(y++, x, "money: %llu", Players[gui->pageParam].money);
-			MVPRINTW(y++, x, "branches: %d", (int) Players[gui->pageParam].numBranches);
-			for(i = 0; i < Players[gui->pageParam].numBranches; i++) {
-				MVPRINTW(y++, x, "branch %s", Cities[Players[gui->pageParam].branchCity[i]].name->ptr);
-				MVPRINTW(y++, x, "workers: %d", (int) Players[gui->pageParam].branchWorkers[i]);
-				MVPRINTW(y++, x, "free stock: %d", (int) getPlayerFreeBranchStorage(i, gui->pageParam));
+			MVPRINTW(y++, x, "status for %s [press 'i' to impersonate]", p->name->ptr);
+			MVPRINTW(y++, x, "money: %llu", p->money);
+			MVPRINTW(y++, x, "branches: %d", (int) p->numBranches);
+			for(i = 0; i < p->numBranches; i++) {
+				MVPRINTW(y++, x, "branch %s", Cities[p->branchCity[i]].name->ptr);
+				MVPRINTW(y++, x, "workers: %d", (int) p->branchWorkers[i]);
+				MVPRINTW(y++, x, "free stock: %d", (int) getPlayerFreeBranchStorage(i, pid));
 			}
 			
 			break;
+		}
 		case GP_BRANCH: {
 			clearPage(gui);
 			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
 			console_initoutput(gui->term);
-			Player* p = &Players[gui->pageParam2];
 			size_t brid = gui->pageParam;
+			size_t pid = gui->pageParam2;
+			Player* p = &Players[pid];
+			
 			x = 3;
 			y = 3;
 			MVPRINTW(y++, x, "Player %s, branch %s", p->name->ptr, Cities[p->branchCity[brid]].name->ptr);
@@ -610,8 +625,8 @@ void paintPage(Gui* gui, Guipage page) {
 			}
 
 			y++;
-			i = getPlayerFreeBranchStorage(gui->pageParam, gui->pageParam2);
-			c = getPlayerMaxBranchStorage(gui->pageParam, gui->pageParam2);
+			i = getPlayerFreeBranchStorage(brid, pid);
+			c = getPlayerMaxBranchStorage(brid, pid);
 			
 			MVPRINTW(y++, x, "stock: %d/%d", (int) c - i, (int) c);
 			y++;
@@ -621,14 +636,16 @@ void paintPage(Gui* gui, Guipage page) {
 			
 			break;
 		}
-		case GP_CONVOY:
+		case GP_CONVOY: {
 			clearPage(gui);
 			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
 			console_initoutput(gui->term);
-			Convoy *cnv = &Players[gui->pageParam2].convoys[gui->pageParam];
+			size_t pid = gui->pageParam2;
+			size_t cid = gui->pageParam;
+			Convoy *cnv = &Players[pid].convoys[cid];
 			x = 3;
 			y = 3;
-			MVPRINTW(y++, x, "Player %s, convoy %s", Players[gui->pageParam2].name->ptr, cnv->name ? cnv->name->ptr : "unnamed");
+			MVPRINTW(y++, x, "Player %s, convoy %s", Players[pid].name->ptr, cnv->name ? cnv->name->ptr : "unnamed");
 			MVPRINTW(y++, x, "%s: %zu | %s: %zu | %s: %zu | %s: %zu", 
 				 shipProps[ST_A].name->ptr, cnv->shipcounter.numShips[ST_A], 
 				 shipProps[ST_B].name->ptr, cnv->shipcounter.numShips[ST_B], 
@@ -650,7 +667,7 @@ void paintPage(Gui* gui, Guipage page) {
 			}
 			
 			break;
-			
+		}
 		case GP_TRADE:
 			clearPage(gui);
 			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
