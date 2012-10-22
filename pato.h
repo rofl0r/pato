@@ -278,11 +278,8 @@ extern const Good Goods[];
 
 extern size_t GAME_SPEED;
 
-#ifdef NOKDEV
 extern const ShipProps shipProps[];
 extern const stringptr* populationDesc[];
-#endif
-
 
 PlayerType playerTypeFromString(stringptr* pt);
 Notification makeNotification(NotificationType nt, size_t val1, size_t val2, float fval1, float fval2);

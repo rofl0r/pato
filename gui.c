@@ -624,21 +624,27 @@ void paintPage(Gui* gui, Guipage page) {
 			clearPage(gui);
 			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
 			console_initoutput(gui->term);
+			Convoy *cnv = &Players[gui->pageParam2].convoys[gui->pageParam];
 			x = 3;
 			y = 3;
-			MVPRINTW(y++, x, "Player %s, convoy %s", Players[gui->pageParam2].name->ptr, Players[gui->pageParam2].convoys[gui->pageParam].name ? Players[gui->pageParam2].convoys[gui->pageParam].name->ptr : "unnamed");
-			MVPRINTW(y++, x, "sailors: %d", (int) Players[gui->pageParam2].convoys[gui->pageParam].numSailors);
-			c = getConvoyMaxStorage(&Players[gui->pageParam2].convoys[gui->pageParam]);
-			MVPRINTW(y++, x, "stock: %d/%d", (int) Players[gui->pageParam2].convoys[gui->pageParam].totalload, (int) c);
-			if(Players[gui->pageParam2].convoys[gui->pageParam].loc == SLT_SEA) 
-				MVPRINTW(y++, x, "location: sea, on its way to %s", Cities[Players[gui->pageParam2].convoys[gui->pageParam].locCity].name->ptr);
-			else if(Players[gui->pageParam2].convoys[gui->pageParam].loc == SLT_CITY)
-				MVPRINTW(y++, x, "location: port of %s", Cities[Players[gui->pageParam2].convoys[gui->pageParam].locCity].name->ptr);
+			MVPRINTW(y++, x, "Player %s, convoy %s", Players[gui->pageParam2].name->ptr, cnv->name ? cnv->name->ptr : "unnamed");
+			MVPRINTW(y++, x, "%s: %zu | %s: %zu | %s: %zu | %s: %zu", 
+				 shipProps[ST_A].name->ptr, cnv->shipcounter.numShips[ST_A], 
+				 shipProps[ST_B].name->ptr, cnv->shipcounter.numShips[ST_B], 
+				 shipProps[ST_C].name->ptr, cnv->shipcounter.numShips[ST_C],
+				 shipProps[ST_D].name->ptr, cnv->shipcounter.numShips[ST_D]);
+			MVPRINTW(y++, x, "sailors: %d", (int) cnv->numSailors);
+			c = getConvoyMaxStorage(cnv);
+			MVPRINTW(y++, x, "stock: %d/%d", (int) cnv->totalload, (int) c);
+			if(cnv->loc == SLT_SEA) 
+				MVPRINTW(y++, x, "location: sea, on its way to %s", Cities[cnv->locCity].name->ptr);
+			else if(cnv->loc == SLT_CITY)
+				MVPRINTW(y++, x, "location: port of %s", Cities[cnv->locCity].name->ptr);
 			y++;
-			if(Players[gui->pageParam2].convoys[gui->pageParam].totalload > 0.f) {
+			if(cnv->totalload > 0.f) {
 				for(i = 1; i < GT_MAX; i++) {
-					if(Players[gui->pageParam2].convoys[gui->pageParam].load.stock[i] > 0.f)
-						MVPRINTW(++y, 3, "%*s: stock %f", -11, stringFromGoodType(i)->ptr,  Players[gui->pageParam2].convoys[gui->pageParam].load.stock[i]);
+					if(cnv->load.stock[i] > 0.f)
+						MVPRINTW(++y, 3, "%*s: stock %f", -11, stringFromGoodType(i)->ptr,  cnv->load.stock[i]);
 				}
 			}
 			
