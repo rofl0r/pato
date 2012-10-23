@@ -306,6 +306,7 @@ void gui_adjust_areas(Gui* gui) {
 
 void createBranchMenu(Gui* gui) {
 	size_t player = gui->menuParam;
+	printf("selecting player %zu\n", player);
 	size_t b;
 	gui->dynMenu = malloc(sizeof(Menu) + (sizeof(Menuitem) * (Players[player].numBranches + 1)));
 	gui->dynMenu->numElems = Players[player].numBranches + 1;
@@ -329,8 +330,8 @@ void createBranchMenu(Gui* gui) {
 			gui->dynMenu->items[b + 1].action.targetMenu = MP_PLAYER_BRANCH;
 		}
 		gui->dynMenu->items[b + 1].action.targetPage = GP_BRANCH;
-		gui->dynMenu->items[b + 1].action.param1 = b;
-		gui->dynMenu->items[b + 1].action.param2 = player;
+		gui->dynMenu->items[b + 1].action.param2 = b;
+		gui->dynMenu->items[b + 1].action.param1 = player;
 	}
 	if(havePlayer(gui))
 		menus[MP_PLAYER_BRANCHES] = gui->dynMenu;
@@ -363,8 +364,8 @@ void createConvoyMenu(Gui* gui) {
 			gui->dynMenu->items[b + 1].action.targetMenu = MP_PLAYER_CONVOY;
 		}
 		gui->dynMenu->items[b + 1].action.targetPage = GP_CONVOY;
-		gui->dynMenu->items[b + 1].action.param1 = b;
-		gui->dynMenu->items[b + 1].action.param2 = player;
+		gui->dynMenu->items[b + 1].action.param2 = b;
+		gui->dynMenu->items[b + 1].action.param1 = player;
 	}
 	if(havePlayer(gui))
 		menus[MP_PLAYER_CONVOYS] = gui->dynMenu;
@@ -563,7 +564,6 @@ void paintPage(Gui* gui, Guipage page) {
 			break;
 		} 
 		case GP_PLAYER: {
-			// FIXME is playerid passed in pageparam1 ?
 			size_t pid = gui->pageParam;
 			Player* p = &Players[pid];
 			clearPage(gui);
@@ -586,8 +586,8 @@ void paintPage(Gui* gui, Guipage page) {
 			clearPage(gui);
 			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
 			console_initoutput(gui->term);
-			size_t brid = gui->pageParam;
-			size_t pid = gui->pageParam2;
+			size_t brid = gui->pageParam2;
+			size_t pid = gui->pageParam;
 			Player* p = &Players[pid];
 			
 			x = 3;
@@ -640,8 +640,8 @@ void paintPage(Gui* gui, Guipage page) {
 			clearPage(gui);
 			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
 			console_initoutput(gui->term);
-			size_t pid = gui->pageParam2;
-			size_t cid = gui->pageParam;
+			size_t pid = gui->pageParam;
+			size_t cid = gui->pageParam2;
 			Convoy *cnv = &Players[pid].convoys[cid];
 			x = 3;
 			y = 3;
@@ -907,7 +907,7 @@ int gui_processInput(Gui* gui) {
 				return -1;
 			case 'I':
 				if(gui->activeMenu == MP_PLAYER) {
-					gui->persona = menus[gui->activeMenu]->items[menus[gui->activeMenu]->activeMenuEntry].action.param2;
+					gui->persona = menus[gui->activeMenu]->items[menus[gui->activeMenu]->activeMenuEntry].action.param1;
 					Players[gui->persona].type = PLT_USER;
 					gui->activeMenu = MP_PLAYER_MAIN;
 				}
@@ -915,8 +915,15 @@ int gui_processInput(Gui* gui) {
 			case CK_RETURN:
 				store = gui->activeMenu;
 				if(menus[store]->items[menus[store]->activeMenuEntry].action.type & MAT_SHOW_MENU) {
+					size_t targetM = menus[store]->items[menus[store]->activeMenuEntry].action.targetMenu;
+					if(store != MP_PLAYERS && (targetM == MP_CONVOYS || targetM == MP_BRANCHES || targetM == MP_PLAYER)) {
+						// need to set player id
+						menus[store]->items[menus[store]->activeMenuEntry].action.param1 = 
+							gui->menuParam;
+					}
+
 					gui->menuParam = menus[store]->items[menus[store]->activeMenuEntry].action.param1;
-					gui->activeMenu = menus[store]->items[menus[store]->activeMenuEntry].action.targetMenu;
+					gui->activeMenu = targetM;
 					switch(gui->activeMenu) {
 						case MP_BRANCHES: case MP_CONVOYS: case MP_PLAYER_BRANCHES: case MP_PLAYER_CONVOYS:
 							menus[gui->activeMenu] = NULL; // flag to see we have to recreate the menu
