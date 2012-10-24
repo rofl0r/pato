@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "gui.h"
+#include "gui_menu.h"
 #include "../concol/console.h"
 #include "../concol/console_keys.h"
 
@@ -18,270 +19,197 @@ rgb_t MAP_BG_COLOR = RGB(0, 0, 0);
 const rgb_t TITLEBAR_BG_COLOR = RGB(66, 66, 66);
 const rgb_t TITLEBAR_FONT_COLOR = RGB(255, 255, 255);
 
-const stringptr* MENU_TEXT_BACK = SPLITERAL("..");
-
 FILE* dbgf;
 
-#ifndef IN_KDEVELOP_PARSER
+static void paintPage(Gui* gui);
+static void gui_resizeMap(Gui* gui, int scaleFactor);
 
 const Menu menu_empty = {
-	0, 0, 
-	
-	{
-		
-		{
-			NULL,
-			{
-				MAT_NONE,
-				MP_NONE,
-				GP_NONE,
-				0,0
-			},
-		},
-	}
+	//.parent = MP_NONE,
+	.id = MP_NONE,
+	.numElems = 0,
+	.activeItem = 0,
+	.items = {},
 };
 
 Menu menu_main = {
-	
-	3, 0,
-
-	{
+	//.parent = MP_NONE,
+	.id = MP_MAIN,
+	.numElems = 3,
+	.activeItem = 0,
+	.items = {
 		{
-			SPLITERAL("Map"),
-			{
-				MAT_SHOW_PAGE,
-				MP_NONE,
-				GP_MAP,
-				0,0
-			},
-			
+			.text = SPLITERAL("Map"),
+			.abbrev = 'm',
+			.type = MAT_SHOW_PAGE,
+			.target = {GP_MAP},
 		},
 		
 		{
-		
-			SPLITERAL("Players"),
-			{
-				MAT_SHOW_MENU,
-				MP_PLAYERS,
-				GP_NONE,
-				0,0
-			},
+			.text = SPLITERAL("Players"),
+			.abbrev = 'p',
+			.type = MAT_SHOW_MENU,
+			.target = {MP_PLAYERS},
 		},
 		
 		{
-
-			SPLITERAL("Cities"),
-			{
-				MAT_SHOW_MENU,
-				MP_CITIES,
-				GP_NONE,
-				0,0
-			},
+			.text = SPLITERAL("Cities"),
+			.abbrev = 'c',
+			.type = MAT_SHOW_MENU,
+			.target = {MP_CITIES},
 		},
-		
-		{
-			NULL,
-			{
-				MAT_NONE,
-				MP_NONE,
-				GP_NONE,
-				0,0
-			},
-		}	
-		
 	}
 };
 
-
 Menu menu_player = {
-	3, 0, 
-	{
+	//.parent = MP_PLAYERS,
+	.id = MP_PLAYER,
+	.numElems = 4,
+	.activeItem = 0,
+	.items = { 
 		{
-			SPLITERAL(".."), //MENU_TEXT_BACK,
-			{
-				MAT_SHOW_MENU,
-				MP_PLAYERS,
-				GP_NONE,
-				0,0
-			},
+			.text = SPLITERAL(".."), //MENU_TEXT_BACK,
+			.abbrev = '.',
+			.type = MAT_SHOW_MENU,
+			.target = {MP_PLAYERS},
 		},
-		
 		{
-			SPLITERAL("Branches"),
-			{
-				MAT_SHOW_MENU,
-				MP_BRANCHES,
-				GP_NONE,
-				0,0
-			},
+			.text = SPLITERAL("Branches"),
+			.abbrev = 'b',
+			.type = MAT_SHOW_MENU,
+			.target = {MP_BRANCHES},
 		},
-		
 		{
-			SPLITERAL("Convoys"),
-			{
-				MAT_SHOW_MENU,
-				MP_CONVOYS,
-				GP_NONE,
-				0,0
-			}
-			
+			.text = SPLITERAL("Convoys"),
+			.abbrev = 'c',
+			.type = MAT_SHOW_MENU,
+			.target = {MP_CONVOYS},
+		},
+		{
+			.text = SPLITERAL("impersonate [!]"),
+			.abbrev = 'i',
+			.type = MAT_SHOW_MENU,
+			.target = {MPP_MAIN},
 		}
-		
 	}
 };
 
 Menu menu_player_main = {
-	3, 0,
-
-	{
+	//.parent = MP_NONE,
+	.id = MPP_MAIN,
+	.numElems = 3,
+	.activeItem = 0,
+	.items = {
 		{
-			SPLITERAL("Map"),
-			{
-				MAT_SHOW_PAGE,
-				MP_NONE,
-				GP_MAP,
-				0,0
-			},
-			
+			.text = SPLITERAL("Map"),
+			.abbrev = 'm',
+			.type = MAT_SHOW_PAGE,
+			.target = {GP_MAP},
 		},
-		
 		{
-			SPLITERAL("Branches"),
-			{
-				MAT_SHOW_MENU,
-				MP_PLAYER_BRANCHES,
-				GP_NONE,
-				0,0
-			},
+			.text = SPLITERAL("Branches"),
+			.abbrev = 'b',
+			.type = MAT_SHOW_MENU,
+			.target =  {MPP_BRANCHES},
 		},
-		
 		{
-			SPLITERAL("Convoys"),
-			{
-				MAT_SHOW_MENU,
-				MP_PLAYER_CONVOYS,
-				GP_NONE,
-				0,0
-			}
-			
+			.text = SPLITERAL("Convoys"),
+			.abbrev = 'c',
+			.type = MAT_SHOW_MENU,
+			.target = {MPP_CONVOYS},
 		}
-		
 	}
-	
 };
 
 Menu menu_player_branch = {
-	6, 0, 
-	{
+	//.parent = MPP_BRANCHES,
+	.id = MPP_BRANCH,
+	.numElems = 6,
+	.activeItem = 0,
+	.items =  {
 		{
-			SPLITERAL(".."), //MENU_TEXT_BACK,
-			{
-				MAT_SHOW_MENU,
-				MP_PLAYER_BRANCHES,
-				GP_NONE,
-				0,0
-			},
+			.text = SPLITERAL(".."), //MENU_TEXT_BACK,
+			.abbrev = '.',
+			.type = MAT_SHOW_MENU,
+			.target = {MPP_BRANCHES},
 		},
-		
 		{
-			SPLITERAL("Trade"),
-			{
-				MAT_SHOW_PAGE,
-				MP_NONE,
-				GP_TRADE,
-				0,0
-			},
+			.text = SPLITERAL("Trade"),
+			.abbrev = 't',
+			.type = MAT_SHOW_PAGE,
+			.target = {GP_TRADE},
 		},
-		
 		{
-			SPLITERAL("Buy Buildings"),
-			{
-				MAT_SHOW_PAGE,
-				MP_NONE,
-				GP_TRADE,
-				0,0
-			},
+			.text = SPLITERAL("Buy Buildings"),
+			.abbrev = 'b',
+			.type = MAT_SHOW_PAGE,
+			.target = {GP_TRADE},
 		},
-		
 		{
-			SPLITERAL("Buy Ships"),
-			{
-				MAT_SHOW_PAGE,
-				MP_NONE,
-				GP_TRADE,
-				0,0
-			},
+			.text = SPLITERAL("Buy Ships"),
+			.abbrev = 's',
+			.type = MAT_SHOW_PAGE,
+			.target = {GP_TRADE},
 		},
-
 		{
-			SPLITERAL("Build Ships"),
-			{
-				MAT_SHOW_PAGE,
-				MP_NONE,
-				GP_TRADE,
-				0,0
-			},
+			.text = SPLITERAL("Build Ships"),
+			.abbrev = 'r',
+			.type = MAT_SHOW_PAGE,
+			.target = {GP_TRADE},
 		},
-
 		{
-			SPLITERAL("Make Convoy"),
-			{
-				MAT_SHOW_PAGE,
-				MP_NONE,
-				GP_TRADE,
-				0,0
-			},
+			.text = SPLITERAL("Make Convoy"),
+			.abbrev = 'c',
+			.type = MAT_SHOW_PAGE,
+			.target = {GP_TRADE},
 		},
 	}
 };
 
 Menu menu_player_convoy = {
-	2, 0, 
-	{
+	//.parent = MPP_CONVOYS,
+	.id = MPP_CONVOY,
+	.numElems = 2,
+	.activeItem = 0,
+	.items = {
 		{
-			SPLITERAL(".."), //MENU_TEXT_BACK,
-			{
-				MAT_SHOW_MENU,
-				MP_PLAYER_CONVOYS,
-				GP_NONE,
-				0,0
-			},
+			.text = SPLITERAL(".."), //MENU_TEXT_BACK,
+			.abbrev = '.',
+			.type = MAT_SHOW_MENU,
+			.target = {MPP_CONVOYS},
 		},
-		
 		{
-			SPLITERAL("Trade"),
-			{
-				MAT_SHOW_PAGE,
-				MP_NONE,
-				GP_TRADE,
-				0,0
-			},
+			.text = SPLITERAL("Trade"),
+			.abbrev = 't',
+			.type = MAT_SHOW_PAGE,
+			.target = {GP_TRADE},
 		},
 	}
 };
-
-#endif
 
 Menu* p_menu_cities;
 Menu* p_menu_players;
 Menu* menus[MP_MAX];
 
+/*
 Menu* menu_copy(Menu* source) {
 	size_t i;
 	Menu* result = malloc(sizeof(Menu) + (source->numElems * sizeof(Menuitem)));
-	result->activeMenuEntry = source->activeMenuEntry;
+	result->activeItem = source->activeItem;
 	result->numElems = source->numElems;
 	for(i = 0; i < result->numElems; i++) {
 		result->items[i] = source->items[i];
 	}
 	return result;
 }
+*/
 
-inline int havePlayer(Gui* gui) {
+
+static inline int havePlayer(Gui* gui) {
 	return (ptrdiff_t) gui->persona != -1;
 }
 
-void gui_adjust_areas(Gui* gui) {
+static void gui_adjust_areas(Gui* gui) {
 	size_t menuwidth;
 	gui->areas.toolbar.x = 0;
 	gui->areas.toolbar.y = 0;
@@ -304,101 +232,94 @@ void gui_adjust_areas(Gui* gui) {
 	gui->areas.page.h = gui->h - gui->areas.toolbar.h;
 }
 
-void createBranchMenu(Gui* gui) {
-	size_t player = gui->menuParam;
-	printf("selecting player %zu\n", player);
-	size_t b;
-	gui->dynMenu = malloc(sizeof(Menu) + (sizeof(Menuitem) * (Players[player].numBranches + 1)));
-	gui->dynMenu->numElems = Players[player].numBranches + 1;
-	gui->dynMenu->activeMenuEntry = 0;	
+static Menu* createBranchesMenu(Gui* gui) {
+	size_t b, player = gui->menudata.player_id;
+	Menu* ret = menu_alloc(Players[player].numBranches, 
+			       havePlayer(gui) ? MPP_BRANCHES : MP_BRANCHES, 
+			       havePlayer(gui) ? MPP_MAIN : MP_PLAYER);
 	
-	gui->dynMenu->items[0].text = (stringptr*) MENU_TEXT_BACK;
-	gui->dynMenu->items[0].action.type = MAT_SHOW_MENU;
-	
-	if(havePlayer(gui))
-		gui->dynMenu->items[0].action.targetMenu = MP_PLAYER_MAIN;
-	else
-		gui->dynMenu->items[0].action.targetMenu = MP_PLAYER;
-	
-	gui->dynMenu->items[0].action.param1 = 0;
-	
-	for (b = 0; b < Players[player].numBranches; b++) {
-		gui->dynMenu->items[b + 1].text = Cities[Players[player].branchCity[b]].name;
-		gui->dynMenu->items[b + 1].action.type = MAT_SHOW_PAGE;
-		if(havePlayer(gui)) {
-			gui->dynMenu->items[b + 1].action.type |= MAT_SHOW_MENU;
-			gui->dynMenu->items[b + 1].action.targetMenu = MP_PLAYER_BRANCH;
+	if(ret) {
+		for (b = 0; b < Players[player].numBranches; b++) {
+			menu_set_item(ret, b + 1, Cities[Players[player].branchCity[b]].name, b < 10 ? '0' + b : 0,
+				havePlayer(gui) ? MAT_SHOW_MENU : MAT_SHOW_PAGE, 
+				havePlayer(gui) ?  MPP_BRANCH : GP_BRANCH
+			);
 		}
-		gui->dynMenu->items[b + 1].action.targetPage = GP_BRANCH;
-		gui->dynMenu->items[b + 1].action.param2 = b;
-		gui->dynMenu->items[b + 1].action.param1 = player;
 	}
-	if(havePlayer(gui))
-		menus[MP_PLAYER_BRANCHES] = gui->dynMenu;
-	else
-		menus[MP_BRANCHES] = gui->dynMenu;
+	return ret;
 }
 
-void createConvoyMenu(Gui* gui) {
-	size_t player = gui->menuParam;
-	size_t b;
-	gui->dynMenu = malloc(sizeof(Menu) + (sizeof(Menuitem) * (Players[player].numConvoys + 1)));
-	gui->dynMenu->numElems = Players[player].numConvoys + 1;
-	gui->dynMenu->activeMenuEntry = 0;	
+static Menu* createConvoysMenu(Gui* gui) {
+	size_t b, player = gui->menudata.player_id;
+	Menu* ret = menu_alloc(Players[player].numConvoys, 
+			       havePlayer(gui) ? MPP_CONVOYS : MP_CONVOYS, 
+			       havePlayer(gui) ? MPP_MAIN : MP_PLAYER);
 	
-	gui->dynMenu->items[0].text = (stringptr*) MENU_TEXT_BACK;
-	gui->dynMenu->items[0].action.type = MAT_SHOW_MENU;
-	
-	if(havePlayer(gui))
-		gui->dynMenu->items[0].action.targetMenu = MP_PLAYER_MAIN;
-	else
-		gui->dynMenu->items[0].action.targetMenu = MP_PLAYER;
-	
-	gui->dynMenu->items[0].action.param1 = 0;
-	
-	for (b = 0; b < Players[player].numConvoys; b++) {
-		gui->dynMenu->items[b + 1].text = Players[player].convoys[b].name;
-		gui->dynMenu->items[b + 1].action.type = MAT_SHOW_PAGE;
-		if(havePlayer(gui)) {
-			gui->dynMenu->items[b + 1].action.type |= MAT_SHOW_MENU;
-			gui->dynMenu->items[b + 1].action.targetMenu = MP_PLAYER_CONVOY;
+	if(ret) {
+		for (b = 0; b < Players[player].numConvoys; b++) {
+			menu_set_item(ret, b + 1, Players[player].convoys[b].name, b < 10 ? '0' + b : 0,
+				      havePlayer(gui) ? MAT_SHOW_MENU : MAT_SHOW_PAGE,
+				      havePlayer(gui) ? MPP_CONVOY : GP_CONVOY);
 		}
-		gui->dynMenu->items[b + 1].action.targetPage = GP_CONVOY;
-		gui->dynMenu->items[b + 1].action.param2 = b;
-		gui->dynMenu->items[b + 1].action.param1 = player;
 	}
-	if(havePlayer(gui))
-		menus[MP_PLAYER_CONVOYS] = gui->dynMenu;
-	else
-		menus[MP_CONVOYS] = gui->dynMenu;
+	return ret;
+}
+
+static Menu* createCitiesMenu(Gui* gui) {
+	Menu* ret = menu_alloc(numCities, MP_CITIES, MP_MAIN);
+	if(ret) {
+		size_t i;
+		for(i = 0; i < numCities; i++) {
+			menu_set_item(ret, i + 1, Cities[i].name, i < 10 ? '0' + i : 0,
+				      MAT_SHOW_PAGE, GP_CITY);
+		}
+	}
+	return ret;
+}
+
+static Menu* createPlayersMenu(Gui *gui) {
+	Menu *ret = menu_alloc(numPlayers, MP_PLAYERS, MP_MAIN);
+	if(ret) {
+		size_t i;
+		for(i = 0; i < numPlayers; i++) {
+			menu_set_item(ret, i + 1, Players[i].name, i < 10 ? '0' + i : 0,
+				      /*MAT_SHOW_PAGE | */MAT_SHOW_MENU,
+				      MP_PLAYER); //TODO this one should also show *page* GP_PLAYER
+		}
+	}
+	return ret;
+}
+
+static void initMenus(Gui* gui) {
+	p_menu_cities = createCitiesMenu(gui);
+	p_menu_players = createPlayersMenu(gui);
+	
+	menus[MP_NONE] = (Menu*) &menu_empty;
+	menus[MP_MAIN] = (Menu*) &menu_main;
+	menus[MP_CITIES] = p_menu_cities;
+	menus[MP_PLAYERS] = p_menu_players;
+	menus[MP_PLAYER] = (Menu*) &menu_player;
+	menus[MP_BRANCHES] = NULL;
+	menus[MP_CONVOYS] = NULL;
+	menus[MPP_MAIN] = (Menu*) &menu_player_main;
+	menus[MPP_BRANCHES] = NULL;
+	menus[MPP_CONVOYS] = NULL;
+	menus[MPP_BRANCH] = (Menu*) &menu_player_branch;
+	menus[MPP_CONVOY] = (Menu*) &menu_player_convoy;
 }
 
 
-void paintMenu(Gui* gui, Menupage page) {
+static void paintMenu(Gui* gui) {
+	if(gui->col != IC_MENU)
+		return;
+	enum Menupage page = gui->activeMenu;
 	size_t x, y;
 	size_t startx = gui->w - MENU_WIDTH;
 	size_t maxx;
 	size_t starty;
 	
-	if(gui->col != IC_MENU)
-		return;
-	
-	if(menus[page] == NULL) {
-		if(gui->dynMenu) {
-			free(gui->dynMenu);
-			gui->dynMenu = NULL;
-		}
-		switch(page) {
-			case MP_BRANCHES: case MP_PLAYER_BRANCHES:
-				createBranchMenu(gui);
-				break;
-			case MP_CONVOYS: case MP_PLAYER_CONVOYS:
-				createConvoyMenu(gui);
-				break;
-			default:
-				break;
-		}
-	}
+	struct Menu *m = menus[page];
+	if(!m) m = gui->dynMenu;
 	
 	console_setcolors(gui->term, MENU_BGCOLOR, MENU_BGCOLOR);
 
@@ -412,26 +333,192 @@ void paintMenu(Gui* gui, Menupage page) {
 	}
 	
 	startx++;
+	size_t off = 0;
 	
-	for(y = starty; y < starty + menus[page]->numElems; y++) {
-		rgb_t fg = (y == starty + (int) menus[page]->activeMenuEntry) ? MENU_HIGHLIGHT_FONTCOLOR : MENU_FONTCOLOR;
+	for(y = starty; y < starty + m->numElems; y++) {
+		rgb_t fg = (y == starty + (int) m->activeItem)
+			? MENU_HIGHLIGHT_FONTCOLOR 
+			: MENU_FONTCOLOR;
+			
+		int abbrev = m->items[y - starty].abbrev;
+		console_setcolors(gui->term, MENU_BGCOLOR, MENU_HIGHLIGHT_FONTCOLOR);
+		console_goto(gui->term, startx, y);
+		console_printchar(gui->term, '[', 0);
+		console_printchar(gui->term, abbrev ? abbrev : ' ', 0);
+		console_printchar(gui->term, ']', 0);
+		off = 3;
+		
+		maxx = (m->items[y - starty].text->size > MENU_WIDTH -2 -off) 
+			? MENU_WIDTH - 2 -off 
+			: m->items[y - starty].text->size;
+		
+		
 		console_setcolors(gui->term, MENU_BGCOLOR, fg);
 		
-		maxx = menus[page]->items[y - starty].text->size > MENU_WIDTH -2 ? MENU_WIDTH - 2 : menus[page]->items[y - starty].text->size;
-		
-		for(x = startx; x < startx + maxx; x++) {
+		for(x = startx + off; x < startx + off + maxx; x++) {
 			console_goto(gui->term, x, y);
-			console_addchar(gui->term, menus[page]->items[y - starty].text->ptr[x - startx], (y == starty + menus[page]->activeMenuEntry) ? 0 : 0);
+			console_addchar(gui->term, 
+					m->items[y - starty].text->ptr[x - (startx + off)], 
+					(y == starty + m->activeItem) ? 0 : 0);
 		}
 	}
 	// put cursor next to highlighted entry:
-	//maxx = menus[page]->items[menus[page]->activeMenuEntry].text->size > MENU_WIDTH ? MENU_WIDTH : menus[page]->items[menus[page]->activeMenuEntry].text->size;
-	//console_goto(gui->term, startx + maxx, starty + menus[page]->activeMenuEntry);
-	
-	gui->activeMenu = page;
+	//maxx = menus[page]->items[menus[page]->activeItem].text->size > MENU_WIDTH ? MENU_WIDTH : menus[page]->items[menus[page]->activeItem].text->size;
+	//console_goto(gui->term, startx + maxx, starty + menus[page]->activeItem);
 }
 
-void clearPage(Gui* gui) {
+static void freeDynMenu(Gui *gui) {
+	if(gui->dynMenu) {
+		menu_free(gui->dynMenu);
+		gui->dynMenu = NULL;
+	}
+}
+
+static void resetDynMenu(Gui *gui, struct Menu* newm) {
+	freeDynMenu(gui);
+	gui->dynMenu = newm;
+}
+
+static void createMenu(Gui* gui) {
+	if(!menus[gui->activeMenu]) {
+		switch(gui->activeMenu) {
+			case MP_BRANCHES:
+			case MPP_BRANCHES:
+				resetDynMenu(gui, createBranchesMenu(gui));
+				break;
+			case MP_CONVOYS:
+			case MPP_CONVOYS:
+				resetDynMenu(gui, createConvoysMenu(gui));
+				break;
+			default:
+				break;
+		}
+	}
+}
+
+static void doMenu(Gui* gui) {
+	size_t a = gui->activeMenu;
+	struct Menu* m = menus[a];
+	if(!m) m = gui->dynMenu;
+	struct Menuitem *mi = &m->items[m->activeItem];
+	if(m->activeItem)
+		switch(a) {
+		case MP_BRANCHES:
+				gui->menudata.branch_id = m->activeItem - 1;
+			break;
+		case MP_CITIES:
+				gui->menudata.city_id = m->activeItem - 1;
+			break;
+		case MP_CONVOYS:
+				gui->menudata.convoy_id = m->activeItem - 1;
+			break;
+		case MP_PLAYERS:
+				gui->menudata.player_id = m->activeItem - 1;
+			break;
+		case MP_PLAYER:
+			/* impersonate entry */
+			if(mi->abbrev == 'i') {
+				gui->persona = gui->menudata.player_id;
+				Players[gui->persona].type = PLT_USER;
+			}
+			break;
+		default :
+			break;
+		
+	}
+
+	if(mi->type == MAT_SHOW_PAGE) {
+		gui->activePage = mi->target.page;
+		paintPage(gui);
+	} else if (mi->type == MAT_SHOW_MENU) {
+		gui->activeMenu = mi->target.menu;
+		createMenu(gui);
+	}
+	
+	/* special code for menus that set another menu AND a page.
+	 * those have to point to menu code by default */
+	a = gui->activeMenu;
+	switch(a) {
+		case MP_PLAYER:
+			gui->activePage = GP_PLAYER;
+			paintPage(gui);
+			break;
+		case MPP_CONVOY:
+			gui->activePage = GP_CONVOY;
+			paintPage(gui);
+			break;
+		case MPP_BRANCH:
+			gui->activePage = GP_BRANCH;
+			paintPage(gui);
+			break;
+		default:
+			break;
+	}
+}
+
+static int checkMenuAbbrev(Gui *gui, int c) {
+	size_t i;
+	Menu* m = menus[gui->activeMenu];
+	if(!m) m = gui->dynMenu;
+	Menuitem *mi;
+	for(i = 0; i < m->numElems; i++) {
+		mi = &m->items[i];
+		if(c == mi->abbrev) {
+			m->activeItem = i;
+			doMenu(gui);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static int processMenuInput(Gui* gui, int c) {
+	Menu* m = menus[gui->activeMenu];
+	if(!m) m = gui->dynMenu;
+	
+	c &= CK_MASK;
+	
+	if(!checkMenuAbbrev(gui, c)) switch(c) {
+		case CK_CURSOR_UP:
+			if(m->activeItem == 0)
+				m->activeItem = m->numElems -1;
+			else
+				m->activeItem--;
+			break;
+		case CK_CURSOR_DOWN:
+			if(m->activeItem == m->numElems -1)
+				m->activeItem = 0;
+			else
+				m->activeItem++;
+			break;
+		case CK_PLUS:
+			GAME_SPEED = GAME_SPEED >= world.secondsperminute ? world.secondsperminute : GAME_SPEED * 2;
+			break;
+		case CK_MINUS:
+			GAME_SPEED = GAME_SPEED > 2 ? GAME_SPEED / 2 : 1;
+			break;
+		case 'q':
+			return -1;
+		case CK_RETURN:
+			doMenu(gui);
+			break;
+		case CK_TAB:
+			gui->col = IC_PAGE;
+			gui_adjust_areas(gui);
+			gui_resizeMap(gui, gui->zoomFactor);
+			break;
+		default:
+			console_setcolors(gui->term, TITLEBAR_BG_COLOR, TITLEBAR_FONT_COLOR);
+			console_initoutput(gui->term);
+			MVPRINTW(0, gui->w - MENU_WIDTH, "%d", c);
+			break;
+	}
+	paintMenu(gui);
+	return 0;
+}
+
+
+static void clearPage(Gui* gui) {
 	size_t x, y;
 	
 	console_setcolors(gui->term, MAP_BG_COLOR, MAP_BG_COLOR);
@@ -443,12 +530,12 @@ void clearPage(Gui* gui) {
 	}
 }
 
-void translateZoomedCoordsToGuiCoords(Gui* gui, size_t* x, size_t* y) {
+static void translateZoomedCoordsToGuiCoords(Gui* gui, size_t* x, size_t* y) {
 	*x = *x - (gui->areas.map.x * gui->zoomFactor);
 	*y = *y - (gui->areas.map.y * gui->zoomFactor);
 }
 
-void translateGameCoordsToZoomedCoords(Gui* gui, float orgX, float orgY, size_t* x, size_t* y) {
+static void translateGameCoordsToZoomedCoords(Gui* gui, float orgX, float orgY, size_t* x, size_t* y) {
 	size_t halfh = (gui->areas.page.h + (gui->areas.page.h % 2)) / 2;
 	size_t halfw = (gui->areas.page.w + (gui->areas.page.w % 2)) / 2;
 	
@@ -462,7 +549,7 @@ void translateGameCoordsToZoomedCoords(Gui* gui, float orgX, float orgY, size_t*
 	//*y = (gui->map_resized->h) - *y;
 }
 
-inline int inVisibleZoomedMapArea(Gui* gui, size_t x, size_t y) {
+static inline int inVisibleZoomedMapArea(Gui* gui, size_t x, size_t y) {
 	return
 		x > gui->areas.map.x * gui->zoomFactor &&
 		x < (gui->areas.map.x * gui->zoomFactor) + gui->areas.page.w &&
@@ -470,16 +557,16 @@ inline int inVisibleZoomedMapArea(Gui* gui, size_t x, size_t y) {
 		y < (gui->areas.map.y * gui->zoomFactor) + gui->areas.page.h;
 }
 
-inline int blueish(rgb_t* col) {
+static inline int blueish(rgb_t* col) {
 	return col->b > col->r && col->b > col->g;
 }
 #define USE_CHECKER
 /* this is responsible for painting the content of the left column;
  * map view, statistics and so on. */
-void paintPage(Gui* gui, Guipage page) {
+static void paintPage(Gui* gui) {
 	size_t i, c;
 	size_t x, y, starty;
-
+	enum Guipage page = gui->activePage;
 	rgb_t* in;
 	char* in2;
 
@@ -539,7 +626,7 @@ void paintPage(Gui* gui, Guipage page) {
 			
 			break;
 		case GP_CITY: {
-			size_t cid = gui->pageParam;
+			size_t cid = gui->menudata.city_id;
 			clearPage(gui);
 			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
 			console_initoutput(gui->term);
@@ -564,7 +651,7 @@ void paintPage(Gui* gui, Guipage page) {
 			break;
 		} 
 		case GP_PLAYER: {
-			size_t pid = gui->pageParam;
+			size_t pid = gui->menudata.player_id;
 			Player* p = &Players[pid];
 			clearPage(gui);
 			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
@@ -586,8 +673,8 @@ void paintPage(Gui* gui, Guipage page) {
 			clearPage(gui);
 			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
 			console_initoutput(gui->term);
-			size_t brid = gui->pageParam2;
-			size_t pid = gui->pageParam;
+			size_t brid = gui->menudata.branch_id;
+			size_t pid = gui->menudata.player_id;
 			Player* p = &Players[pid];
 			
 			x = 3;
@@ -640,8 +727,8 @@ void paintPage(Gui* gui, Guipage page) {
 			clearPage(gui);
 			console_setcolors(gui->term, MAP_BG_COLOR, MENU_FONTCOLOR);
 			console_initoutput(gui->term);
-			size_t pid = gui->pageParam;
-			size_t cid = gui->pageParam2;
+			size_t pid = gui->menudata.player_id;
+			size_t cid = gui->menudata.convoy_id;
 			Convoy *cnv = &Players[pid].convoys[cid];
 			x = 3;
 			y = 3;
@@ -682,11 +769,9 @@ void paintPage(Gui* gui, Guipage page) {
 		default:
 			break;
 	}
-	gui->activePage = page;
-	
 }
 
-void paintTitlebar(Gui* gui) {
+static void paintTitlebar(Gui* gui) {
 	int day, hour, min, sec;
 	size_t x;
 	console_setcolors(gui->term, TITLEBAR_BG_COLOR, TITLEBAR_BG_COLOR);
@@ -709,17 +794,16 @@ void paintTitlebar(Gui* gui) {
 	console_initoutput(gui->term);
 
 	MVPRINTW(0, 0, "Day %d, %.2d:%.2d - Speed: %d", day, hour, min, GAME_SPEED);
-	
 }
 
 void gui_repaint(Gui* gui) {
-	paintMenu(gui, gui->activeMenu);
-	paintPage(gui, gui->activePage);
+	paintMenu(gui);
+	paintPage(gui);
 	paintTitlebar(gui);
 	console_refresh(gui->term); //repaint
 }
 
-void gui_resizeMap(Gui* gui, int scaleFactor) {
+static void gui_resizeMap(Gui* gui, int scaleFactor) {
 	rgb_t bgcol;
 	int neww, newh;
 	int halfh, halfw;
@@ -767,7 +851,6 @@ void gui_resized(Gui* gui) {
 
 #include "../concol/fonts/allfonts.h"
 void gui_init(Gui* gui) {
-	size_t i;
 	int w, h;
 	
 	dbgf = fopen("debug.gui", "w");
@@ -786,51 +869,7 @@ void gui_init(Gui* gui) {
 	gui->w = w;
 	gui->h = h;
 	
-	p_menu_cities = malloc(sizeof(Menu) + (sizeof(Menuitem) * (numCities + 1)));
-	p_menu_cities->numElems = numCities + 1;
-	p_menu_cities->activeMenuEntry = 0;
-	
-	p_menu_cities->items[0].text = (stringptr*) MENU_TEXT_BACK;
-	p_menu_cities->items[0].action.type = MAT_SHOW_MENU;
-	p_menu_cities->items[0].action.targetMenu = MP_MAIN;
-	p_menu_cities->items[0].action.param1 = 0;
-	
-	for(i = 0; i < numCities; i++) {
-		p_menu_cities->items[i + 1].text = Cities[i].name;
-		p_menu_cities->items[i + 1].action.type = MAT_SHOW_PAGE;
-		p_menu_cities->items[i + 1].action.targetPage = GP_CITY;
-		p_menu_cities->items[i + 1].action.param1 = i;
-	}
-	p_menu_players = malloc(sizeof(Menu) + (sizeof(Menuitem) * (numPlayers + 1)));
-	p_menu_players->numElems = numPlayers + 1;
-	p_menu_players->activeMenuEntry = 0;
-
-	p_menu_players->items[0].text = (stringptr*) MENU_TEXT_BACK;
-	p_menu_players->items[0].action.type = MAT_SHOW_MENU;
-	p_menu_players->items[0].action.targetMenu = MP_MAIN;
-	p_menu_players->items[0].action.param1 = 0;
-	
-	
-	for(i = 0; i < numPlayers; i++) {
-		p_menu_players->items[i + 1].text = Players[i].name;
-		p_menu_players->items[i + 1].action.type = MAT_SHOW_PAGE | MAT_SHOW_MENU;
-		p_menu_players->items[i + 1].action.targetPage = GP_PLAYER;
-		p_menu_players->items[i + 1].action.targetMenu = MP_PLAYER;
-		p_menu_players->items[i + 1].action.param1 = i;
-	}
-	
-	menus[MP_NONE] = (Menu*) &menu_empty;
-	menus[MP_MAIN] = (Menu*) &menu_main;
-	menus[MP_CITIES] = p_menu_cities;
-	menus[MP_PLAYERS] = p_menu_players;
-	menus[MP_PLAYER] = (Menu*) &menu_player;
-	menus[MP_BRANCHES] = NULL;
-	menus[MP_CONVOYS] = NULL;
-	menus[MP_PLAYER_MAIN] = (Menu*) &menu_player_main;
-	menus[MP_PLAYER_BRANCHES] = NULL;
-	menus[MP_PLAYER_CONVOYS] = NULL;
-	menus[MP_PLAYER_BRANCH] = (Menu*) &menu_player_branch;
-	menus[MP_PLAYER_CONVOY] = (Menu*) &menu_player_convoy;
+	initMenus(gui);
 	
 	gui->persona = (size_t) -1;
 	
@@ -864,13 +903,12 @@ void gui_free(Gui* gui) {
 		free(gui->map_resized);
 	
 	if(gui->dynMenu)
-		free(gui->dynMenu);
+		menu_free(gui->dynMenu);
 	
 	console_cleanup(gui->term);
 }
 
 int gui_processInput(Gui* gui) {
-	size_t store;
 	int c = console_getkey_nb(gui->term);
 	if(c == CK_ERR || c == CK_MOUSE_EVENT) return 0;
 	if(c == CK_RESIZE_EVENT) {
@@ -884,72 +922,8 @@ int gui_processInput(Gui* gui) {
 	}
 	
 	if(gui->col == IC_MENU) {
-		switch(c & CK_MASK) {
-			case CK_CURSOR_UP:
-				if(menus[gui->activeMenu]->activeMenuEntry == 0)
-					menus[gui->activeMenu]->activeMenuEntry = menus[gui->activeMenu]->numElems -1;
-				else
-					menus[gui->activeMenu]->activeMenuEntry--;
-				break;
-			case CK_CURSOR_DOWN:
-				if(menus[gui->activeMenu]->activeMenuEntry == menus[gui->activeMenu]->numElems -1)
-					menus[gui->activeMenu]->activeMenuEntry = 0;
-				else
-					menus[gui->activeMenu]->activeMenuEntry++;
-				break;
-			case CK_PLUS:
-				GAME_SPEED = GAME_SPEED >= world.secondsperminute ? world.secondsperminute : GAME_SPEED * 2;
-				break;
-			case CK_MINUS:
-				GAME_SPEED = GAME_SPEED > 2 ? GAME_SPEED / 2 : 1;
-				break;
-			case 'q':
-				return -1;
-			case 'I':
-				if(gui->activeMenu == MP_PLAYER) {
-					gui->persona = menus[gui->activeMenu]->items[menus[gui->activeMenu]->activeMenuEntry].action.param1;
-					Players[gui->persona].type = PLT_USER;
-					gui->activeMenu = MP_PLAYER_MAIN;
-				}
-				break;
-			case CK_RETURN:
-				store = gui->activeMenu;
-				if(menus[store]->items[menus[store]->activeMenuEntry].action.type & MAT_SHOW_MENU) {
-					size_t targetM = menus[store]->items[menus[store]->activeMenuEntry].action.targetMenu;
-					if(store != MP_PLAYERS && (targetM == MP_CONVOYS || targetM == MP_BRANCHES || targetM == MP_PLAYER)) {
-						// need to set player id
-						menus[store]->items[menus[store]->activeMenuEntry].action.param1 = 
-							gui->menuParam;
-					}
-
-					gui->menuParam = menus[store]->items[menus[store]->activeMenuEntry].action.param1;
-					gui->activeMenu = targetM;
-					switch(gui->activeMenu) {
-						case MP_BRANCHES: case MP_CONVOYS: case MP_PLAYER_BRANCHES: case MP_PLAYER_CONVOYS:
-							menus[gui->activeMenu] = NULL; // flag to see we have to recreate the menu
-						default:
-							break;
-					}
-				}
-				if(menus[store]->items[menus[store]->activeMenuEntry].action.type & MAT_SHOW_PAGE) {
-					gui->activePage = menus[store]->items[menus[store]->activeMenuEntry].action.targetPage;
-					gui->pageParam = menus[store]->items[menus[store]->activeMenuEntry].action.param1;
-					gui->pageParam2 = menus[store]->items[menus[store]->activeMenuEntry].action.param2;
-					paintPage(gui, gui->activePage);
-				}
-				break;
-			case CK_TAB:
-				gui->col = IC_PAGE;
-				gui_adjust_areas(gui);
-				gui_resizeMap(gui, gui->zoomFactor);
-				break;
-			default:
-				console_setcolors(gui->term, TITLEBAR_BG_COLOR, TITLEBAR_FONT_COLOR);
-				console_initoutput(gui->term);
-				MVPRINTW(0, gui->w - MENU_WIDTH, "%d", c);
-				break;
-		}
-		paintMenu(gui, gui->activeMenu);
+		if(processMenuInput(gui, c) == -1)
+			return -1;
 	} else if (gui->col == IC_PAGE) {
 		switch(c & CK_MASK) {
 			case CK_TAB:
@@ -1004,7 +978,7 @@ int gui_processInput(Gui* gui) {
 			default:
 				break;
 		}
-		paintPage(gui, gui->activePage);
+		paintPage(gui);
 	}
 	//console_refresh(gui->term); //repaint
 	gui_repaint(gui);
