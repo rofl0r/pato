@@ -795,6 +795,14 @@ static void paintPage(Gui* gui) {
 	}
 }
 
+void gui_notify(Gui* gui, size_t player, Notification n) {
+	int day = day = world.date / world._dayseconds;
+	// TODO paint a box, printf will mess up any non-sdl backend.
+	if(console_getbackendtype(gui->term) == cb_sdl)
+		printf("Day %d: notified %s about %s!\n", day, 
+		       getPlayerName(player)->ptr, getNotificationName(n.nt)->ptr);
+}
+
 static void paintTitlebar(Gui* gui) {
 	int day, hour, min, sec;
 	size_t x;

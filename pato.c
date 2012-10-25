@@ -37,6 +37,8 @@ bug repeated resizing of the terminal will crash game
 #include "pato.h"
 #include "gui.h"
 
+Gui *gui;
+
 // gcc -Wall -Wextra -g -DNOKDEV pato.c ../lib/stringptr.c ../lib/iniparser.c -lm -o pato
 
 size_t GAME_SPEED = 1;
@@ -122,6 +124,14 @@ const Good Goods[] = {
 	{ SPLITERAL("wine"), GT_WINE, GC_D },
 };
 
+const stringptr* NotificationNames[NT_MAX] = {
+	[NT_NONE] = NULL,
+	[NT_NO_MONEY] = SPL("out of money"),
+	[NT_BAD_MOOD] = SPL("bad mood!"),
+	[NT_OUT_OF_PRODUCTIONGOODS] = SPL("out of prod. goods"),
+	[NT_STOCK_FULL] = SPL("stock full!"),
+};
+
 #endif
 
 
@@ -157,12 +167,16 @@ Notification makeNotification(NotificationType nt, size_t val1, size_t val2, flo
 	return result;
 }
 
+stringptr* getNotificationName(NotificationType x) {
+	return (stringptr*) NotificationNames[x];
+}
+
 void notify(size_t player, Notification n) {
 	Notification* last;
 	last = &Players[player].inbox.notifications[Players[player].inbox.last];
 	if(last->nt == n.nt && last->val1 == n.val1 && last->val2 == n.val2)
 		return;
-	//printf("notified %d about %d!\n", (int) player, (int) n.nt);
+	gui_notify(gui, player, n);
 	Players[player].inbox.last++;
 	if(Players[player].inbox.last >= MAX_NOTIFICATIONS)
 		Players[player].inbox.last = 0;
@@ -328,6 +342,10 @@ ShipLocationType shipLocationTypeFromString(stringptr* loc) {
 		return SLT_SEA;
 	else
 		return SLT_CITY;
+}
+
+stringptr* getPlayerName(size_t playerid) {
+	return Players[playerid].name;
 }
 
 void freePlayers(void) {
@@ -1593,7 +1611,8 @@ int microsleep(long microsecs) {
 int main(int argc, char** argv) {
 	(void) argc;
 	(void) argv;
-	Gui gui;
+	Gui gui_buf;
+	gui = &gui_buf;
 
 	dbg = fopen("debug.pato", "w");
 
@@ -1603,17 +1622,17 @@ int main(int argc, char** argv) {
 	initCities();
 	initBuildings();
 	initPlayers();
-	gui_init(&gui);
+	gui_init(gui);
 	while(1) {
 		// lets cheat... to speed up
 		//world.date += world.secondsperminute - 1;
 		newSec();
 		microsleep(1000);
-		if(gui_processInput(&gui) == -1) break;
+		if(gui_processInput(gui) == -1) break;
 		if(world.date % (world.secondsperminute * GAME_SPEED) == 0)
-			gui_repaint(&gui);
+			gui_repaint(gui);
 	}	
-	gui_free(&gui);
+	gui_free(gui);
 	freeCities();
 	freePlayers();
 	return 0;

@@ -51,6 +51,7 @@ void gui_free(Gui* gui);
 int gui_processInput(Gui* gui);
 void gui_resized(Gui* gui);
 void gui_repaint(Gui* gui);
+void gui_notify(Gui* gui, size_t player, Notification n);
 
 //RcB: DEP "gui.c"
 

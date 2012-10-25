@@ -183,8 +183,12 @@ typedef enum {
 	NT_NO_MONEY,
 	NT_BAD_MOOD,
 	NT_OUT_OF_PRODUCTIONGOODS,
-	NT_STOCK_FULL
+	NT_STOCK_FULL,
+	NT_MAX
 } NotificationType;
+
+extern const stringptr* NotificationNames[NT_MAX];
+stringptr* getNotificationName(NotificationType x);
 
 typedef struct {
 	NotificationType nt;
@@ -300,6 +304,7 @@ void getPlayersWithFreeWorkCapacity(size_t city, size_t* totalcapacity, size_t* 
 ptrdiff_t getShipLocationIDFromCity(size_t city, size_t player);
 ptrdiff_t getCityIDFromBranch(size_t branch, size_t player);
 ptrdiff_t getBranchIDFromCity(size_t city, size_t player);
+stringptr* getPlayerName(size_t playerid);
 size_t getPlayerMaxBranchStorage(size_t branch, size_t player);
 float getPlayerFreeBranchStorage(size_t branch, size_t player);
 size_t getPlayerFactoryCount(size_t branch, size_t player);
