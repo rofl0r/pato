@@ -308,45 +308,49 @@ static void initMenus(Gui* gui) {
 	menus[MPP_CONVOY] = (Menu*) &menu_player_convoy;
 }
 
-
-static void paintMenu(Gui* gui) {
-	if(gui->col != IC_MENU)
-		return;
-	enum Menupage page = gui->activeMenu;
-	size_t x, y;
-	size_t startx = gui->w - MENU_WIDTH;
-	size_t maxx;
-	size_t starty;
-	
-	struct Menu *m = menus[page];
-	if(!m) m = gui->dynMenu;
-	
+static void clearMenu(Gui* gui) {
+	size_t x, y, starty = 1, startx = gui->w - MENU_WIDTH;
 	console_setcolors(gui->term, MENU_BGCOLOR, MENU_BGCOLOR);
-
-	starty = 1;
-	
 	for(y = starty; y < gui->h; y++) {
+		console_goto(gui->term, startx, y);
 		for(x = startx; x < gui->w; x++) {
-			console_goto(gui->term, x, y);
-			console_addchar(gui->term, ' ', 0);
+			console_printchar(gui->term, ' ', 0);
 		}
 	}
+}
+
+static void printMenuAbbrev(Gui* gui, int abbrev, size_t y) {
+	console_goto(gui->term, (gui->w - MENU_WIDTH)+1, y);
 	
-	startx++;
-	size_t off = 0;
+	console_setcolors(gui->term, MENU_BGCOLOR, MENU_HIGHLIGHT_FONTCOLOR);
+	console_printchar(gui->term, '[', 0);
+	
+	console_setcolors(gui->term, MENU_BGCOLOR, MENU_FONTCOLOR);
+	console_printchar(gui->term, abbrev, 0);
+	
+	console_setcolors(gui->term, MENU_BGCOLOR, MENU_HIGHLIGHT_FONTCOLOR);
+	console_printchar(gui->term, ']', 0);
+}
+
+static void paintMenu(Gui* gui) {
+	if(gui->col != IC_MENU) return;
+	clearMenu(gui);
+	struct Menu *m = menus[gui->activeMenu];
+	if(!m) m = gui->dynMenu;
+	size_t x, y;
+	size_t startx = (gui->w - MENU_WIDTH) + 1;
+	size_t maxx, off = 3;
+	size_t starty = 1;
+	
 	
 	for(y = starty; y < starty + m->numElems; y++) {
+		int abbrev = m->items[y - starty].abbrev;
+		if(abbrev) printMenuAbbrev(gui, abbrev, y);
+
 		rgb_t fg = (y == starty + (int) m->activeItem)
 			? MENU_HIGHLIGHT_FONTCOLOR 
 			: MENU_FONTCOLOR;
 			
-		int abbrev = m->items[y - starty].abbrev;
-		console_setcolors(gui->term, MENU_BGCOLOR, MENU_HIGHLIGHT_FONTCOLOR);
-		console_goto(gui->term, startx, y);
-		console_printchar(gui->term, '[', 0);
-		console_printchar(gui->term, abbrev ? abbrev : ' ', 0);
-		console_printchar(gui->term, ']', 0);
-		off = 3;
 		
 		maxx = (m->items[y - starty].text->size > MENU_WIDTH -2 -off) 
 			? MENU_WIDTH - 2 -off 
@@ -401,19 +405,23 @@ static void doMenu(Gui* gui) {
 	struct Menu* m = menus[a];
 	if(!m) m = gui->dynMenu;
 	struct Menuitem *mi = &m->items[m->activeItem];
-	if(m->activeItem)
+	
+	if(m->activeItem) {
+		size_t *dest = NULL;
 		switch(a) {
+		case MPP_BRANCHES:
 		case MP_BRANCHES:
-				gui->menudata.branch_id = m->activeItem - 1;
+				dest = &gui->menudata.branch_id;
 			break;
 		case MP_CITIES:
-				gui->menudata.city_id = m->activeItem - 1;
+				dest = &gui->menudata.city_id;
 			break;
+		case MPP_CONVOYS:
 		case MP_CONVOYS:
-				gui->menudata.convoy_id = m->activeItem - 1;
+				dest = &gui->menudata.convoy_id;
 			break;
 		case MP_PLAYERS:
-				gui->menudata.player_id = m->activeItem - 1;
+				dest = &gui->menudata.player_id;
 			break;
 		case MP_PLAYER:
 			/* impersonate entry */
@@ -424,8 +432,10 @@ static void doMenu(Gui* gui) {
 			break;
 		default :
 			break;
-		
+		}
+		if(dest) *dest =  m->activeItem - 1;
 	}
+	
 
 	if(mi->type == MAT_SHOW_PAGE) {
 		gui->activePage = mi->target.page;
@@ -658,7 +668,7 @@ static void paintPage(Gui* gui) {
 			console_initoutput(gui->term);
 			x = 3;
 			y = 3;
-			MVPRINTW(y++, x, "status for %s [press 'i' to impersonate]", p->name->ptr);
+			MVPRINTW(y++, x, "status for %s", p->name->ptr);
 			MVPRINTW(y++, x, "money: %llu", p->money);
 			MVPRINTW(y++, x, "branches: %d", (int) p->numBranches);
 			for(i = 0; i < p->numBranches; i++) {
