@@ -97,7 +97,7 @@ Menu menu_player = {
 Menu menu_player_main = {
 	//.parent = MP_NONE,
 	.id = MPP_MAIN,
-	.numElems = 3,
+	.numElems = 4,
 	.activeItem = 0,
 	.items = {
 		{
@@ -117,7 +117,13 @@ Menu menu_player_main = {
 			.abbrev = 'c',
 			.type = MAT_SHOW_MENU,
 			.target = {MPP_CONVOYS},
-		}
+		},
+		{
+			.text = SPLITERAL("depersonate [!]"),
+			.abbrev = 'i',
+			.type = MAT_SHOW_MENU,
+			.target = {MP_PLAYERS},
+		},
 	}
 };
 
@@ -430,6 +436,14 @@ static void doMenu(Gui* gui) {
 				Players[gui->persona].type = PLT_USER;
 			}
 			break;
+		case MPP_MAIN:
+			/* depersonate entry */
+			if(mi->abbrev == 'i') {
+				gui->persona = (size_t) -1;
+				Players[gui->persona].type = PLT_CPU;
+			}
+			break;
+			
 		default :
 			break;
 		}
