@@ -130,6 +130,7 @@ const stringptr* NotificationNames[NT_MAX] = {
 	[NT_BAD_MOOD] = SPL("bad mood!"),
 	[NT_OUT_OF_PRODUCTIONGOODS] = SPL("out of prod. goods"),
 	[NT_STOCK_FULL] = SPL("stock full!"),
+	[NT_SHIPS_BOUGHT] = SPL("bought ships"),
 };
 
 #endif
@@ -429,7 +430,7 @@ void initPlayers(void) {
 			Players[p].convoys[s].captainSalary = atoi(inibuf.ptr);
 			
 			iniparser_getvalue(lines, &sec, SPLITERAL("sailors"), &inibuf);
-			Players[p].convoys[s].captainSalary = atoi(inibuf.ptr);
+			Players[p].convoys[s].numSailors = atoi(inibuf.ptr);
 
 			iniparser_getvalue(lines, &sec, SPLITERAL("condition"), &inibuf);
 			Players[p].convoys[s].condition = atof(inibuf.ptr);
@@ -652,8 +653,32 @@ size_t getCityPopulation(size_t city) {
 }
 
 // return price for 1 ton
-unsigned long long calculatePrice(size_t city, Goodtype g, float amount, unsigned sell) {
-	unsigned long long minprice = goodcat_minprice[Goods[g].cat];
+float calculatePrice(size_t city, Goodtype g, float amount, unsigned sell) {
+	if(amount > Cities[city].market.stock[g])
+		amount = Cities[city].market.stock[g];
+	
+	float minprice = goodcat_minprice[Goods[g].cat];
+	float maxprice = minprice * (sell ? 4 : 3);
+	
+	float consumationperday = getPopulationConsumation(g, city);
+	float remaining_stock_lasts_days = (Cities[city].market.stock[g] - (sell ? amount : -amount) ) / consumationperday;
+	/* if the stock lasts for less than 10 days, the maximum price holds */
+	const float lo_tresh = 10.f;
+	/* if it lasts for longer than this, it's sold for the minimum */
+	const float hi_tresh = 100.f;
+	const float scale = hi_tresh - lo_tresh;
+	float price;
+	if(remaining_stock_lasts_days < lo_tresh)
+		price = maxprice;
+	else if(remaining_stock_lasts_days > hi_tresh)
+		price = minprice;
+	else {
+		float x = remaining_stock_lasts_days - lo_tresh;
+		float y = x / scale; //returns a value between 0 and 1. 1 for the full span (bestand == hitresh)
+		price = minprice + ( 1 - y ) * (maxprice - minprice);
+	}
+	
+	/*
 	//Cities[city].market.avgPricePayed[g];
 	float factor = (float) ((Cities[city].market.stock[g] - amount) * 2) + 0.99f / (float) (getCityPopulation(city) + 1);
 	float value = minprice + ((minprice * (sell ? 3 : 2)) * (1.f - factor));
@@ -661,11 +686,16 @@ unsigned long long calculatePrice(size_t city, Goodtype g, float amount, unsigne
 		value = (float) minprice;
 	if(sell)
 		value = value * (1.f + (Cities[city].tax / 100.f));
-	return (unsigned long long) value;
+	return (unsigned long long) value; */
+	
+	if(sell) price *= (1.f + (Cities[city].tax / 100.f));
+	
+	return price;
+	
 }
 
 void sell(size_t city, size_t player, size_t branch, size_t convoy, Goodtype g, float amount, sellFlags flags) {
-	size_t price;
+	long long price;
 	Market* buyermarket;
 	Market* sellermarket;
 	long long* buyerportemonnaie;
@@ -713,19 +743,29 @@ void sell(size_t city, size_t player, size_t branch, size_t convoy, Goodtype g, 
 	}
 	
 	price = calculatePrice(city, g, amount, citysells);
+	assert(price >= 0);
 	
-	if(buyerportemonnaie)
+	if(buyerportemonnaie) {
 		*buyerportemonnaie -= (unsigned long long) ((float) price * amount);
+		assert(*buyerportemonnaie >= 0);
+	}
 	
-	if(sellerportemonnaie)
+	if(sellerportemonnaie) {
 		*sellerportemonnaie += (unsigned long long) ((float) price * amount);
+		assert(*sellerportemonnaie >= 0);
+	}
 	
-	if(sellermarket)
+	if(sellermarket) {
 		sellermarket->stock[g] -= amount;
+		assert(sellermarket->stock[g] >= 0.0);
+	}
 	
-	if(buyermarket)
+	if(buyermarket) {
 		buyermarket->stock[g] += amount;
+		assert(buyermarket->stock[g] >= 0.0);
+	}
 }
+
 
 #ifdef CONSOLE_DEBUG
 void showDate(void) {
@@ -756,6 +796,21 @@ void showCityStatus(size_t city) {
 	}
 }
 #endif
+
+// c == city
+float getPopulationConsumationPerPopulationType(Goodtype g, size_t c, populationType p) {
+	return (populationConsumation[p][g] / world._fdaysperyear) * Cities[c].population[p];
+}
+
+float getPopulationConsumation(Goodtype g, size_t c) {
+	float res = 0.f;
+	size_t p;
+	// consumation of goods.
+	for(p = 1; p < PT_MAX; p++) {
+		res += getPopulationConsumationPerPopulationType(g, c, p);
+	}
+	return res;
+}
 
 void newDay(void) {
 	size_t i, g, p, pl, plsave, b, f;
@@ -829,11 +884,12 @@ void newDay(void) {
 				else {
 					Cities[i].populationMood[p] -= 2.0f - ((2.0f / 100.0f) * percent);
 					// notify players with branches...
+					
+					
 					for(pl = 0; pl < numPlayers; pl++) {
-						for(b = 0; b < Players[pl].numBranches; b++) {
-							if(Players[pl].branchCity[b] == i)
-								notify(pl, makeNotification(NT_BAD_MOOD, b, 0, 0.f, 0.f));
-						}
+						b = getBranchIDFromCity(i, pl);
+						if((ptrdiff_t) b >= 0)
+							notify(pl, makeNotification(NT_BAD_MOOD, b, 0, 0.f, 0.f));
 					}
 				}
 				// correct bounds
@@ -1013,10 +1069,13 @@ size_t buyShips(size_t city, size_t player, size_t shipcount, ShipTypes t) {
 	size_t singleShipCost = (size_t) ((float) shipProps[t].buildCost * 1.6f);
 	size_t i;
 	ptrdiff_t loc = -1;
-	while(shipcount && Players[player].money < (long long) (shipcount * singleShipCost)) shipcount--;
+	size_t price;
+	if(shipcount * singleShipCost > Players[player].money) 
+		shipcount = Players[player].money / singleShipCost;
 	if(shipcount) {
-		Players[player].money -= singleShipCost * shipcount;
-		Cities[city].money += singleShipCost * shipcount;
+		price = singleShipCost * shipcount;
+		Players[player].money -= price;
+		Cities[city].money += price;
 		Cities[city].shipyard.availableShips.numShips[t] -= shipcount;
 		for(i = 0; i < Players[player].numShipLocations; i++) {
 			if(Players[player].shipLocations[i] == city) {
@@ -1031,6 +1090,7 @@ size_t buyShips(size_t city, size_t player, size_t shipcount, ShipTypes t) {
 		}
 		Players[player].singleShips[loc].numShips[t] += shipcount;
 		Players[player].singleShips[loc].total += shipcount;
+		notify(player, makeNotification(NT_SHIPS_BOUGHT, shipcount, (size_t) t, (float) price, (float) Players[player].money));
 	}
 	return shipcount;
 }
@@ -1192,12 +1252,14 @@ void moveGoodsConvoy(Convoy* c, Market* m, Goodtype g, float amount, unsigned fr
 }
 
 float getSaneAmount(size_t player, size_t city, float amount, Goodtype g) {
-	unsigned long long price;
+	float price = calculatePrice(city, g, amount, 1);
+	if(amount * price > Players[player].money) amount = Players[player].money / price;
 	while(amount > 2.f && (price = calculatePrice(city, g, amount, 1)) && 
-		((long long) ((float) price * amount) > Players[player].money 
+		((long long) (price * amount) > Players[player].money 
 			|| price > (goodcat_minprice[Goods[g].cat] * 2)
 		) 
 	) amount /= 2.f;
+	if(amount * price > Players[player].money) amount = 0.f;
 	return amount;
 }
 
@@ -1605,7 +1667,7 @@ int microsleep(long microsecs) {
 	req.tv_nsec = (microsecs % 1000000) * 1000;
 	int ret;
 	while((ret = nanosleep(&req, &rem)) == -1 && errno == EINTR) req = rem;
-	return ret;	
+	return ret;
 }
 
 int main(int argc, char** argv) {

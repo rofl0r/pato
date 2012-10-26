@@ -184,6 +184,7 @@ typedef enum {
 	NT_BAD_MOOD,
 	NT_OUT_OF_PRODUCTIONGOODS,
 	NT_STOCK_FULL,
+	NT_SHIPS_BOUGHT,
 	NT_MAX
 } NotificationType;
 
@@ -285,6 +286,9 @@ extern size_t GAME_SPEED;
 extern const ShipProps shipProps[];
 extern const stringptr* populationDesc[];
 
+float getPopulationConsumationPerPopulationType(Goodtype g, size_t c, populationType p);
+float getPopulationConsumation(Goodtype g, size_t c);
+
 PlayerType playerTypeFromString(stringptr* pt);
 Notification makeNotification(NotificationType nt, size_t val1, size_t val2, float fval1, float fval2);
 void notify(size_t player, Notification n);
@@ -309,7 +313,7 @@ size_t getPlayerMaxBranchStorage(size_t branch, size_t player);
 float getPlayerFreeBranchStorage(size_t branch, size_t player);
 size_t getPlayerFactoryCount(size_t branch, size_t player);
 size_t getCityPopulation(size_t city);
-unsigned long long calculatePrice(size_t city, Goodtype g, float amount, unsigned sell);
+float calculatePrice(size_t city, Goodtype g, float amount, unsigned sell);
 void sell(size_t city, size_t player, size_t branch, size_t convoy, Goodtype g, float amount, sellFlags flags);
 void newDay(void);
 size_t buyShips(size_t city, size_t player, size_t shipcount, ShipTypes t);
