@@ -1172,6 +1172,47 @@ unsigned requireProductionGood(size_t player, size_t branch, Goodtype t) {
 	return 0;
 }
 
+void queueSellOrder(size_t player, size_t from_branch, size_t to_city, Goodtype g, float amount) {
+	size_t c = getCityIDFromBranch(from_branch, player);
+	if(c == to_city) {
+		sell(to_city, player, from_branch, -1, g, amount, SELL_TO_CITY | SELL_FROM_STOCK);
+	} else {
+		// FIXME add code
+	}
+	
+}
+
+int sellBestSellingProductionGoods(size_t player, size_t branch) {
+	size_t c = getCityIDFromBranch(branch, player);
+	size_t ct;
+	size_t i, g;
+	float bestprofit = 0.f;
+	ptrdiff_t bestgood = -1, bestcity = -1;
+	float bestamount = 0.f;
+	Player* p = &Players[player];
+	for (i = 0; i < CITY_MAX_INDUSTRYTYPES; i++) {
+		g = Cities[c].industry[i];
+		float stock = p->branchStock[branch].stock[g];
+		if(stock > 0.f) {
+			for(ct = 0; ct < numCities; ct++) {
+				float price = calculatePrice(ct, g, stock, 1);
+				float res = price * stock;
+				if (res > bestprofit) {
+					bestprofit = res;
+					bestgood = g;
+					bestcity = ct;
+					bestamount = stock;
+				}
+			}
+		}
+	}
+	if(bestprofit > 0.f) {
+		queueSellOrder(player, branch, bestcity, bestgood, bestamount);
+		return 1;
+	}
+	return 0;
+}
+
 void sellWholeStock(size_t player, size_t branch, unsigned skiprequired) {
 	size_t g;
 	for (g = 1; g < GT_MAX; g++) {
