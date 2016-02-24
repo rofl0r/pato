@@ -10,14 +10,14 @@
 
 #define MVPRINTW(y, x, ...) console_printfxy(gui->term, (x), (y), __VA_ARGS__)
 
-const rgb_t MENU_BGCOLOR = RGB(30, 30, 120);
-const rgb_t MENU_FONTCOLOR = RGB(255, 255, 255);
-const rgb_t MENU_HIGHLIGHT_FONTCOLOR = RGB(220, 30, 0);
-const rgb_t MAP_CITY_COLOR = RGB(255, 0, 0);
-const rgb_t MAP_SHIP_COLOR = RGB(220, 220, 0);
-rgb_t MAP_BG_COLOR = RGB(0, 0, 0);
-const rgb_t TITLEBAR_BG_COLOR = RGB(66, 66, 66);
-const rgb_t TITLEBAR_FONT_COLOR = RGB(255, 255, 255);
+const rgb_t MENU_BGCOLOR = RGB_INIT(30, 30, 120);
+const rgb_t MENU_FONTCOLOR = RGB_INIT(255, 255, 255);
+const rgb_t MENU_HIGHLIGHT_FONTCOLOR = RGB_INIT(220, 30, 0);
+const rgb_t MAP_CITY_COLOR = RGB_INIT(255, 0, 0);
+const rgb_t MAP_SHIP_COLOR = RGB_INIT(220, 220, 0);
+rgb_t MAP_BG_COLOR = RGB_INIT(0, 0, 0);
+const rgb_t TITLEBAR_BG_COLOR = RGB_INIT(66, 66, 66);
+const rgb_t TITLEBAR_FONT_COLOR = RGB_INIT(255, 255, 255);
 
 FILE* dbgf;
 
