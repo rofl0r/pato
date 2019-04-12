@@ -53,6 +53,6 @@ void gui_resized(Gui* gui);
 void gui_repaint(Gui* gui);
 void gui_notify(Gui* gui, size_t player, Notification n);
 
-//RcB: DEP "gui.c"
+#pragma RcB2 DEP "gui.c"
 
 #endif

@@ -2,7 +2,7 @@
 #include <assert.h>
 
 #include <leptonica/allheaders.h>
-//RcB: LINK "-llept -lpng -ltiff -ljpeg -lgif -lz"
+#pragma RcB2 LINK "-llept" "-lpng" "-ltiff" "-ljpeg" "-lgif" "-lz"
 
 #include "imginterface.h"
 

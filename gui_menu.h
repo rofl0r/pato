@@ -2,7 +2,7 @@
 #define GUI_MENU_H
 #include "gui_page.h"
 
-//RcB: DEP "gui_menu.c"
+#pragma RcB2 DEP "gui_menu.c"
 
 enum Menupage {
 	MP_NONE = 0,
